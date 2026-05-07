@@ -13,13 +13,13 @@ from utils.plot_functions import plot_performance
 
 # Simulation parameters
 save = True
-agent = "agent"  # "expert" or "agent"
+agent = "expert"  # "expert" or "agent"
 optimization = False
-world_model = "exp3" # "baseline" "exp2" "exp3"
+world_model = "baseline" # "baseline" "exp2" "exp3"
 training = 0.5 
 n_states = 100
 n_simulations = 1000 # 1000
-n_episodes = 20 # 120 for expert, 20 for agent
+n_episodes = 120 # 120 for expert, 20 for agent
 max_steps = 40
 n_actions = 4
 
