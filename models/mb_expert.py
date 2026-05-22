@@ -12,7 +12,7 @@ def mb_expert(params, env, world, rewards_info, max_steps, n_episodes, training,
     ## Initializations ##
 
     # Start with a uniform value function
-    value = np.ones((env.n_states, env.n_actions)) # AS: BIG FAT EXPLORATION BIAS
+    value = np.ones((env.n_states, env.n_actions)) 
     # To save the value function for each episode
     value_perepi = np.zeros((n_episodes, env.n_states, env.n_actions))
 
@@ -28,7 +28,7 @@ def mb_expert(params, env, world, rewards_info, max_steps, n_episodes, training,
     model_r = np.nan*np.zeros((env.n_states, env.n_actions, 2))
         
     # Initialize the reward mat
-    reward_per_step = np.zeros((n_episodes, max_steps)) # AS: renamed: reward_sums_steps -> reward_per_step
+    reward_per_step = np.zeros((n_episodes, max_steps)) 
     reward_sums_epi = np.zeros((n_episodes))
 
     # Initialize state mat as 
@@ -45,7 +45,6 @@ def mb_expert(params, env, world, rewards_info, max_steps, n_episodes, training,
     value_finalepi_list = []
     # Loop over episodes
     for episode in range(n_episodes):
-        #print("Episode", episode)
         
         value_steps_list = []
 
@@ -75,14 +74,14 @@ def mb_expert(params, env, world, rewards_info, max_steps, n_episodes, training,
         n_steps = rng.poisson(params['lambda'], size=max_steps)
         # Loop over steps
         for t in range(max_steps):
-            #print("Episode", episode, "step", t)
+
             # Chose the next action randomly
             _, action = softmax_policy(value, state, env.n_actions, params['beta'], rng)
             
             # Calculate new location based on the action
             next_agent_location, next_state = env.move_agent(action, state, agent_location, reward_placed)
 
-            # observe reward for that action 
+            # Observe reward for that action 
             reward = find_reward(state, reward_placed)  
             # Update rewards based in agent location
             reward_per_step[episode, t] = reward 

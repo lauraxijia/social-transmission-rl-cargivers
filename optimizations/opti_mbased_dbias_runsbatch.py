@@ -18,16 +18,16 @@ training = 0.5 # proportion of episodes used for training
 popsize = 5 # population size for differential evolution
 
 seed = 5
-rng = np.random.default_rng(seed) # AS: create random number generator -> used in diff-evo
+rng = np.random.default_rng(seed) 
 
 print(f"MB DB diff alg w/ max_steps {max_steps}, n_episodes {n_episodes}, n_simulations {n_simulations}, n_calls {n_calls}")
 
-# Define an unbounded param_search_space
+# Define parameter space
 param_search_space = [
-    (-5, 5),    # Unbounded param_search_space for inverse temperature Real(-5, 5) – BETA
-    (-10, 10),  # Unbounded param_search_space for discount factor Real(-10, 10)   – GAMMA
-    (1, 40),    # Categorical (integer) param_search_space for number of steps     - LAMBDA
-    (-10, 10)   # social policy parameter - OMEGA
+    (-5, 5),    # Unbounded space for inverse temperature Real(-5, 5)  – BETA
+    (-10, 10),  # Unbounded space for discount factor Real (-10, 10)   – GAMMA
+    (1, 40),    # Categorical (integer) space for number of steps      - LAMBDA
+    (-10, 10)   # Social policy parameter                              - OMEGA
 ]
 
 ## LOAD DATA ##
@@ -72,9 +72,7 @@ def objective_function(unbounded_params,
                "lambda": lambda_mean, 
                "alpha_t": alpha_t, 
                "omega":omega}
-    #print("params", params)
 
-    #start_objective = time.time()
  
     rewards_result = social_sim_mb(mb_policy, 
                                    expert_data, 
@@ -91,13 +89,8 @@ def objective_function(unbounded_params,
                                    rewards_exp2 = None)
     
 
-    #print("Optimizing over training", -np.mean(rewards_result[:, :int(n_episodes*training)]))
     return -np.mean(rewards_result[:, :int(n_episodes*training)])  
 
-## test if objective works
-#objective_function([0, 0, 0, 1, 0, 0], mb_policy, expert_data, worlds_saved, rewards_shuffled, n_simulations, max_steps, n_episodes, training, rng)
-
-#result_time = time.time()
 result = differential_evolution(objective_function, param_search_space, 
                                 args=(mb_policy, 
                                       expert_data, 
@@ -111,24 +104,21 @@ result = differential_evolution(objective_function, param_search_space,
                                 maxiter=n_calls, 
                                 popsize=popsize, 
                                 disp=True,
-                                rng=rng)  # AS: use seeded random number generator
-
-#result_timefinal = (time.time() - result_time)/60
-#print("The optimization takes", result_timefinal, "mins")
+                                rng=rng) 
 
 
 print("result.x, result.fun", result.x, result.fun)
-print("result.message:", result.message) # AS: cause of termination
+print("result.message:", result.message) 
 
 ## FINAL PARAMETER RETRIEVAL ##
-# Retrieve the optimized parameters in the transformed param_search_space
+# Retrieve the optimized parameters in the transformed space
 unbounded_temp, unbounded_gamma, unbounded_lambda, unbounded_omega = result.x
 
 # Apply inverse transformations to obtain the original bounded parameters
 inverse_temp = np.exp(unbounded_temp)           # For [0, +inf) bounded 
 gamma = 1 / (1 + np.exp(-unbounded_gamma))      # For [0, 1] bounded
-omega = 1 / (1 + np.exp(-unbounded_omega))
-lambda_mean = unbounded_lambda                 # For [0, 40) bounded
+omega = 1 / (1 + np.exp(-unbounded_omega))      # For [0, 1] bounded
+lambda_mean = unbounded_lambda                  # For [0, 40) bounded
 
 print(f"Optimized parameters: beta = {inverse_temp}, alpha = {alpha}, gamma = {gamma}, lambda = {lambda_mean}, alpha_t = {alpha_t}, omega = {omega}")
 opti_params = {"beta": inverse_temp,

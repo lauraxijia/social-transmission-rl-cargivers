@@ -1,6 +1,5 @@
 import numpy as np
 import json
-import time
 from tqdm import tqdm
 import os
 
@@ -81,9 +80,7 @@ agent_function = mb_expert
 
 ## SIMULATION LOOP ##
 print(f"MB {agent} simulations with {world_model} world model")
-start_time_training = time.time()
 for sim in tqdm(range(n_simulations)):
-    start_time_simulation = time.time()
 
     env = VillageWorld(worlds_saved[sim], rng)
     if optimization:
@@ -114,8 +111,8 @@ for sim in tqdm(range(n_simulations)):
                                                                                                                                                         world_model = world_model,
                                                                                                                                                         rewards_exp2=rewards_exp2[sim] if world_model == "exp2" else None)
                                                                                                                                                        
-    end_time_simulation = time.time()
-    #print(f"Simulation {sim} took {end_time_simulation - start_time_simulation} seconds")
+
+
 
     
 
@@ -131,9 +128,7 @@ for sim in tqdm(range(n_simulations)):
     # Not saved 
     rewards_result_steps[sim, :] = np.sum(reward_sums_steps, axis = 1)
     
-end_time_training = time.time()
 
-#print(f"Training took {end_time_training - start_time_training} seconds")
 
 ## SAVE DATA ##
 data = {"sum_rewards": rewards_result_epi_saved.tolist(), 

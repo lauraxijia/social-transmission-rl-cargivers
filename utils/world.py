@@ -37,28 +37,20 @@ class VillageWorld():
        boundary_tileB = [(35,36), (40,41), (41,46), (42,47), (43,48),(43,44), (38,43), (37,42), (36,37)]
        boundary_tileC = [(67,68), (62,63), (57,62), (56,57), (52,57), (53,58), (58,59), (63,64), (68,69)] 
        boundary_tileD = [(75,80), (80,81),(81,86), (86,87), (87,92), (92,93)]
-       
-       # Define boundaries for generalization 1 that block original pathways to rewards
-       gen1_boundary_tileA = [(9,14), (13,14), (13,18), (17,18), (17,22), (16,17), (16,21), (15,16), (10,11), (11, 6), (7,12), (7,8)]
-       gen1_boundary_tileB = [(35,36), (40,41), (41,46), (42,47), (43,48), (43,44), (38,39), (33,38), (32,37), (36,37), (42,43)]
-       gen1_boundary_tileC = [(67,68), (62,67), (61,62), (56,57), (52,57),(57,58), (53,58), (58,59), (63,64), (68,69)] 
-       #gen1_boundary_tileD = [(75,80), (80,81),(81,86), (86,87), (87,92), (92,93)]
-       gen1_boundary_tileD = [(75,80), (80,81),(81,86), (87,88), (82,87), (92,93)]
 
        # Define the rotation angles for later random choise
        possible_rotation_angles = np.array([0,90,180,270])
        rotation_angles = self.rng.choice(possible_rotation_angles, size=self.n_tiles, replace=True)
        
        # Initialize tiles with boundaries, rotation and reward states
-       self.tileA = Tile(xdim_tiles, ydim_tiles, 0, 25, 16, boundary_tileA, rotation_angles[0], gen1_boundary_tileA)
-       self.tileB = Tile(xdim_tiles, ydim_tiles, 25, 50, 43, boundary_tileB, rotation_angles[1], gen1_boundary_tileB)
-       self.tileC = Tile(xdim_tiles, ydim_tiles, 50, 75, 57, boundary_tileC, rotation_angles[2], gen1_boundary_tileC)
-       self.tileD = Tile(xdim_tiles, ydim_tiles, 75, 100, 87, boundary_tileD, rotation_angles[3], gen1_boundary_tileD)
+       self.tileA = Tile(xdim_tiles, ydim_tiles, 0, 25, 16, boundary_tileA, rotation_angles[0])
+       self.tileB = Tile(xdim_tiles, ydim_tiles, 25, 50, 43, boundary_tileB, rotation_angles[1])
+       self.tileC = Tile(xdim_tiles, ydim_tiles, 50, 75, 57, boundary_tileC, rotation_angles[2])
+       self.tileD = Tile(xdim_tiles, ydim_tiles, 75, 100, 87, boundary_tileD, rotation_angles[3])
        
        self.tiles = [self.tileA, self.tileB, self.tileC, self.tileD]
        
        self.world_matrix = self.get_world_matrix() if world is None else world
-       #self.world_matrix = world
        self.init_transit_mat, self.true_transition_mat = self.transition_probabilities()
 
     # Design the world  
@@ -194,12 +186,12 @@ class VillageWorld():
         return flat_boundaries
             
 
-    def transition_probabilities(self, exp = "baseline"):
+    def transition_probabilities(self):
         """
         Generate the initial and true transition probability matrices for the environment
 
         Args:
-            exp: str, experiment type; if "exp3" use gen1 boundaries
+            -
         Returns:
             init_transit_mat: Initial transition probability matrix (100,4,100)
             Initial transition matrix is the same for all worlds. All transitions are possible
@@ -212,7 +204,7 @@ class VillageWorld():
         # Action mappings
         action_dict = {
             0: (-1, 0),  # up
-            1: (0, 1) ,   # right
+            1: (0, 1) ,  # right
             2: (1, 0),   # down
             3: (0, -1),  # left
         }
@@ -240,10 +232,8 @@ class VillageWorld():
                     # Find in which tile it is so we can call self. 
                     current_tile, new_tile = self.get_tile_from_state(state), self.get_tile_from_state(new_state)
 
-                    if exp == "exp3":
-                        is_boundary = current_tile.is_boundary_gen1(state, new_state)
-                    else:
-                        is_boundary = current_tile.is_boundary(state, new_state)
+
+                    is_boundary = current_tile.is_boundary(state, new_state)
 
                     # Check if there is a boundary between state and new_state 
                     if is_boundary:
@@ -259,11 +249,6 @@ class VillageWorld():
                     init_transit_mat[state, action, state] = 1
                     true_transit_mat[state, action, state] = 1
                 
-                
-                # Return normalized transit_mat 
-                # For deterministic transitions this is unnecessary
-                #init_transit_mat[state, action, :] = init_transit_mat[state, action, :] / np.sum(init_transit_mat[state, action, :])
-                #true_transit_mat[state, action, :] = true_transit_mat[state, action, :] / np.sum(true_transit_mat[state, action, :])
 
         return init_transit_mat, true_transit_mat
     
