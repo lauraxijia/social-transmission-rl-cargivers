@@ -1,11 +1,11 @@
 from collections import defaultdict
 
 import numpy as np
-from utils.helper_functions import softmax_policy, q_learning, dynaq_planner, find_reward, model_update
+from utils.helper_functions import softmax_policy, q_learning, dynaq_planner, find_reward, model_update, teaching_objective
 
 """Policy of model-based pedagogical expert."""
 
-def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episodes_total, n_teach_episodes, rng, optimization = False, world_model='baseline', learner_function = None, learner_params = None, n_learner = None):
+def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episodes_total, n_teach_episodes, rng, optimization = False, world_model='baseline', learner_function = None, learner_params = None, n_learner = None, *, objective):
 
     # Assert that exp is either 'baseline' or 'exp2' or 'exp3'
     assert world_model in ['baseline', 'exp2', 'exp3'], "exp must be 'baseline', 'exp2', or 'exp3'"
@@ -146,10 +146,21 @@ def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episode
                         }
                 
                 # Compute objective (e.g., average difference between value of selected action of learner and expert's optimal action) and select action that maximizes the objective (move as separate function to helper_functions.py)
-                # If we use the average difference between value of selected action of learner and expert's optimal action, we need the optimal action of the expert, which could either be sampled from the softmax or be argmax_a of the learner's state. 
+                # If we use the average difference between value of selected action of learner and expert's optimal action, we need the optimal action of the expert, which could either be sampled from the softmax or be argmax_a of the learner's state.
                 # But note that different learner candidates might be in different states!
-                best_action = None 
-                action_show = teaching_objective(learner_candidates)
+                best_action = None
+                action_show = teaching_objective(
+                    method=objective,
+                    predictions_at_t=teacher_predictions[episode][t],
+                    learner_candidates=learner_candidates,
+                    teacher_Q=value,
+                    env=env,
+                    rng=rng,
+                    reward_placed=reward_placed,
+                    expert_state=state,
+                    horizon=max_steps - t,
+                    n_actions=env.n_actions,
+                )
 
                 # Update the learners based on the observed expert action
                 for learner in learner_candidates.values():
