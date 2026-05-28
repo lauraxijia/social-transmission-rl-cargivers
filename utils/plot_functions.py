@@ -519,27 +519,22 @@ def load_data(file):
 
 def plot_performance(sum_reward, x_label, title, y_label, expert_gone):
     
+    sum_reward = np.asarray(sum_reward)
+
     fig, ax = plt.subplots(figsize=(8, 5))
 
-    #ax.plot(sum_reward.T, linestyle='-', alpha = 0.1, color="blue")
     ax.plot(np.arange(1, sum_reward.shape[1]+1), np.mean(sum_reward, axis = 0), color = "black", linewidth=2)
-    #for i in range(sum_reward.shape[1]):
-        #ax.plot(sum_reward[:,i])
-    #ax.plot(np.mean(sum_reward, axis = 1), label = "mean")
-    
+ 
     ax.set_xticks(np.insert(np.arange(5, sum_reward.shape[1]+1, 5), 0, 1))
     if expert_gone != None:
         ax.axvline(expert_gone,linestyle='--' )
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     ax.set_title(title)
-    #ax.spines[['right', 'top']].set_visible(False)
-    #plt.title(title)
-    #plt.legend()
 
     #plt.show()
-    # plt.savefig('saved_plot.png', bbox_inches='tight')
-    # plt.close()
+    #plt.savefig(f'saved/figures/{exp}/{agent}')
+    #plt.close()
     return fig, ax
 
 
@@ -563,7 +558,7 @@ def plot_with_se(ax, x, data, color, label, linestyle='-'):
         ax.fill_between(x, mean - se, mean + se, color=color, alpha=0.2)  # Shaded region
 
 # ALL MODELS STEPS
-def all_models(mbased_metric, mfree_metric, n_episodes, training, exp, ylabel, expert):
+def all_models(mbased_metric, mfree_metric, n_episodes, training, legend, ylabel, expert):
     
     """
     Plot the performance of all models with SEs
@@ -571,7 +566,7 @@ def all_models(mbased_metric, mfree_metric, n_episodes, training, exp, ylabel, e
     mfree_metric: List of arrays with the metrics for model free
     n_episodes: Number of episodes
     training: Percentage of training
-    exp: String indicating the experiment type (e.g., 'baseline', 'exp2', 'exp3') for legend placements
+    legend: String indicating the legend placements (depneding one experiment: 'baseline', 'exp2', 'exp3', or 'none')
     ylabel: Label of the y axis
     expert: Expert data
 
@@ -650,13 +645,13 @@ def all_models(mbased_metric, mfree_metric, n_episodes, training, exp, ylabel, e
 
 
     # Baseline legend
-    if exp == 'baseline':
+    if legend == 'baseline':
         bold_title = FontProperties(weight='bold', size=14)
         legend1 = ax.legend(handles=social_strategy, title = "SL", loc='upper left', bbox_to_anchor=(0.51, 0.75), fontsize = 12, title_fontproperties=bold_title,frameon=True)
         ax.add_artist(legend1)  # Add the first legend to the axes
         legend2 = ax.legend(handles=type_of_model + [dummy], title = "RL", loc='upper left', bbox_to_anchor=(0.75, 0.75), fontsize = 12, title_fontproperties=bold_title, frameon=True)
         ax.text(0.74, 0.55, "×", transform=ax.transAxes, fontsize=18, ha= 'center', va = 'center')
-    if exp == 'exp2':
+    if legend == 'exp2':
         bold_title = FontProperties(weight='bold', size=14)
         legend1 = ax.legend(handles=social_strategy, title = "SL", loc='upper left', bbox_to_anchor=(0.51, 0.65), fontsize = 12, title_fontproperties=bold_title,frameon=True)
         ax.add_artist(legend1)  # Add the first legend to the axes

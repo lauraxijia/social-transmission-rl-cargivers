@@ -5,7 +5,7 @@ import time
 from scipy.optimize import differential_evolution
 
 from utils.social_functions import social_sim_mf
-from models.mf_valueshaping import mf_valueshaping
+from models.mf_valueshaping_old import mf_valueshaping
 
 """Optimization of the model-free social agent with value shaping using differential evolution."""
 

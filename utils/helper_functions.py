@@ -1,9 +1,86 @@
+import os
+
 import numpy as np
+from tqdm import tqdm
+from .world import VillageWorld
 from scipy.special import softmax
 import json
 from numba import njit
 
 """Helperfunctions for the simulations."""
+
+def run_simulations(
+    AgentClass,
+    params,
+    expert_data,
+    rng,
+    exp,
+    worlds,
+    rewards,
+    rewards_exp2,
+    n_simulations,
+    n_episodes,
+    max_steps,
+    training_split,
+    optimization
+):
+    """Run multiple independent simulations using the agent class."""
+
+    results = []
+
+    for sim in tqdm(range(n_simulations), disable=optimization):
+        env = VillageWorld(worlds[sim], rng)
+
+        agent = AgentClass(
+            rng=rng,
+            params=params,
+            env=env,
+            world=worlds[sim],
+            rewards_info=rewards[sim],
+            rewards_exp2=rewards_exp2[sim] if rewards_exp2 else None,
+            expert_states=expert_data['states_saved'][sim],
+            expert_actions=expert_data['actions_saved'][sim],
+            n_episodes=n_episodes,
+            training_split=training_split,
+            max_steps=max_steps,
+            optimization=optimization,
+            exp=exp
+        )
+
+        sim_result = agent.run_full_simulation()
+        results.append(sim_result)
+
+    return results
+
+def aggregate_results(results):
+    """Aggregate results from multiple simulations."""
+    data = {
+        "sum_rewards": np.stack([r['reward_sum_episode'] for r in results]),
+        "steps_to_reward": np.stack([r['steps_to_reward'] for r in results]),
+        "values": np.stack([r['final_values'] for r in results]),
+        "states": np.stack([r['states'] for r in results]),
+        "actions": np.stack([r['actions'] for r in results]),
+        "value_snapshots": np.stack([r['value_snapshots'] for r in results]),
+    }
+    return data
+
+def save_results(results, exp, agent):
+    """Save the results of the simulations to a json file."""
+    # Create directory if it doesn't exist
+    folder = f'saved/{exp}'
+    os.makedirs(folder, exist_ok=True)
+
+    json_safe = {k: v.tolist() if isinstance(v, np.ndarray) else v for k, v in results.items() if k != "value_snapshots"}
+
+    # Save data to json file
+    with open(os.path.join(folder, f'{agent}_{exp}.json'), 'w') as json_file:
+        json.dump(json_safe, json_file, indent=4)
+    
+    # Save value snapshots to npz file
+    np.savez_compressed(f'{folder}/{agent}_{exp}_values_epi.npz', *results["value_snapshots"])
+
+    print(f"Results saved to {folder}.")
+
 
 #@njit
 def softmax_policy(value, state, n_actions, beta, rng):

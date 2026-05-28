@@ -4,6 +4,53 @@ from tqdm import tqdm
 
 """Helperfunctions for social learning for the simulations."""
 
+def run_simulations(
+    AgentClass,
+    expert_data,
+    worlds_saved,
+    rewards_saved,
+    rewards_exp2,
+    n_simulations,
+    params,
+    rng,
+    env_class,
+    n_episodes,
+    max_steps,
+    training_split,
+    world_model,
+    optimization=False
+):
+    """
+    Run multiple independent simulations using the agent class.
+    """
+
+    results = []
+
+    for sim in range(n_simulations):
+        env = env_class(worlds_saved[sim], rng)
+
+        agent = AgentClass(
+            rng=rng,
+            params=params,
+            env=env,
+            world=worlds_saved[sim],
+            rewards_info=rewards_saved[sim],
+            rewards_exp2=rewards_exp2[sim] if rewards_exp2 else None,
+            expert_states=expert_data['states_saved'][sim],
+            expert_actions=expert_data['actions_saved'][sim],
+            n_episodes=n_episodes,
+            training_split=training_split,
+            max_steps=max_steps,
+            optimization=optimization,
+            world_model=world_model
+        )
+
+        sim_result = agent.run_full_simulation()
+        results.append(sim_result)
+
+    return results
+
+
 def social_sim_mf(algorithm, expert_data, 
                   worlds_saved, rewards_placed, 
                   n_simulations, max_steps, n_episodes, 

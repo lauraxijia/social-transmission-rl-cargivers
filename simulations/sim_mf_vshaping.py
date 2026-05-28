@@ -2,80 +2,83 @@ import os
 import numpy as np
 import json
 
+from models.mf_valueshaping import MFValueShapingAgent
+from utils.helper_functions import run_simulations, aggregate_results, save_results
 from utils.plot_functions import plot_performance
-from utils.social_functions import social_sim_mf
-from models.mf_valueshaping import mf_valueshaping
 
 """Simulation of the model-free value shaping agent."""
 
-# Simulation parameters
+AgentClass = MFValueShapingAgent
+
+# --- Set simulation parameters --- #
 save = True
 n_episodes = 20
-world_model = "exp3" # "baseline" "exp3" "exp2"
-training = 0.5
+exp = "baseline" # "baseline" "exp3" "exp2"
+training_split = 0.5
 n_states = 100
 n_simulations = 1000 #1000
 max_steps = 40
 n_actions = 4
 
+# Set seed for reproducibility
 seed = 5
 rng = np.random.default_rng(seed)
 
-## LOAD DATA ##
-# Load parameters
-print("Params agent value shaping:")
+# --- Load data --- #
+# Load agent parameters
 with open(f'saved/opti_results/mfree_vshaping.json', 'r') as json_file:
     params = json.load(json_file)["opti_params"]
-print(params)
+print("Params agent MF-VS: \n ", params)
 
 # Load data from the expert
 with open('saved/baseline/mbased_expert_baseline.json', 'r') as json_file:
-    expert_data= json.load(json_file)
-# Convert the saved lists to array
+    expert_data = json.load(json_file)
 for k in expert_data.keys():
     expert_data[k] = np.array(expert_data[k])
 
-# Load rewards and worlds
+# Load worlds
 loaded = np.load('saved/worlds.npz')
-worlds_saved = [loaded[f'arr_{i}'] for i in range(len(loaded.files))]
+worlds = [loaded[f'arr_{i}'] for i in range(len(loaded.files))]
 
+# Load rewards
 rewards_load = np.load('saved/rewards_info.npz')
-rewards_shuffled = [rewards_load[f'arr_{i}'] for i in range(len(rewards_load.files))]
+rewards = [rewards_load[f'arr_{i}'] for i in range(len(rewards_load.files))]
 
-if world_model == "exp2":
+# Load modified rewards for test phase for exp2
+if exp == "exp2":
     rewards_load_exp2 = np.load('saved/rewards_exp2.npz')
     rewards_exp2 = [rewards_load_exp2[f'arr_{i}'] for i in range(len(rewards_load_exp2.files))]
 else:
     rewards_exp2 = None
 
-# Load agent function
-agent_function = mf_valueshaping
 
-## SIMULATION ##
-print(f"MF Value Shaping simulations with {world_model} world model")
-final_value_saved, sum_rewards, states_saved, actions_saved, steps_to_reward, value_epi_saved, rewards_result_steps = social_sim_mf(agent_function, expert_data, worlds_saved, rewards_shuffled, n_simulations, max_steps, n_episodes, params, training, rng, optimization = False, world_model=world_model,rewards_exp2=rewards_exp2)
+# --- Run simulation --- #
+print(f"Run exp {exp} with MF Value Shaping agent for {n_simulations} simulation(s) à {n_episodes} episodes, and max {max_steps} steps per episode.")
+results = run_simulations(
+    AgentClass,
+    params,
+    expert_data, 
+    rng,
+    exp,
+    worlds, 
+    rewards, 
+    rewards_exp2,
+    n_simulations, 
+    n_episodes, 
+    max_steps,
+    training_split, 
+    optimization = False
+    )
 
+# --- Aggregate results --- #
+results = aggregate_results(results)
 
-## SAVE DATA ##
-data = {"sum_rewards": sum_rewards.tolist(), 
-                "steps_to_reward": steps_to_reward.tolist(), 
-                "value": final_value_saved.tolist(), 
-                "states_saved": states_saved.tolist(),
-                "actions_saved": actions_saved.tolist()
-                }
+# --- Plot performance --- #
+fig1, ax1 = plot_performance(results["sum_rewards"], "Episodes", f"MF Value Shaping {params['kappa']} kappa", "Performance", n_episodes*training_split)
+fig2, ax2 = plot_performance(results["steps_to_reward"], "Episodes", f"MF Value Shaping {params['kappa']} kappa", "Steps to reward", n_episodes*training_split )  
 
+# --- Save results --- #
 if save:
-    # Create directory if it doesn't exist
-    saving_path = f'saved/{world_model}'
-    os.makedirs(saving_path, exist_ok=True)
-
-    with open(f'saved/{world_model}/mfree_vshaping_{world_model}.json', 'w') as json_file:
-        json.dump(data, json_file, indent=4)
-    np.savez_compressed(f'saved/{world_model}/vshaping_mfree_value_epi.npz', *value_epi_saved)
-    print("MF Social VS data saved")
-
-    ## PLOT PERFORMANCE ##
-    fig1, ax1 = plot_performance(sum_rewards, "Episodes", f"MF Value Shaping {params['kappa']} kappa", "Performance", n_episodes*training)
-    fig1.savefig(f'saved/figures/{world_model}/mf_vshaping_{world_model}_performance.png')
-    fig2, ax2 = plot_performance(steps_to_reward, "Episodes", f"MF Value Shaping {params['kappa']} kappa", "Steps to reward", n_episodes*training )    
-    fig2.savefig(f'saved/figures/{world_model}/mf_vshaping_{world_model}_steps_to_reward.png')
+    save_results(results, exp, agent='mfree_vshaping')
+    fig1.savefig(f'saved/figures/{exp}/mfree_vshaping_{exp}_performance.png')
+    fig2.savefig(f'saved/figures/{exp}/mfree_vshaping_{exp}_steps_to_reward.png')

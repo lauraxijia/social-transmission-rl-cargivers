@@ -4,7 +4,7 @@ import tqdm
 import os
 
 from models.mb_pedagogical_expert import mb_pedagogical_expert
-from models.mf_valueshaping import mf_valueshaping
+from models.mf_valueshaping import MFValueShapingAgent
 from utils.plot_functions import plot_performance
 from utils.world import VillageWorld
 
@@ -42,9 +42,11 @@ worlds_saved = [loaded[f'arr_{i}'] for i in range(len(loaded.files))]
 rewards_load = np.load('saved/rewards_info.npz')
 rewards_shuffled = [rewards_load[f'arr_{i}'] for i in range(len(rewards_load.files))]
 
-# Load learner
+# Load learner class and params
 if learner == "MF-VS":
-    learner_function = mf_valueshaping
+    learner_function = MFValueShapingAgent
+    with open(f'saved/opti_results/mf_valueshaping.json', 'r') as json_file:
+        learner_params = json.load(json_file)["opti_params"]
 
 # TODO: Is there anything else we want to store?
 
