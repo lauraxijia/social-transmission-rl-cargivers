@@ -33,25 +33,22 @@ print(f"Model free diff algorithm w/ max_steps {max_steps}, n_episodes {n_episod
 
 
 
-# Define an unbounded space
-space = [
-    (-5, 5),  # Unbounded space for inverse temperature Real(-5, 5)
-    (-10, 10),  # Unbounded space for learning rate 1 Real(-10, 10)
-    (-10, 10)  # Unbounded space for discount factor Real(-10, 10)
+# Define parameter space
+param_search_space = [
+    (-5, 5),    # Unbounded space for inverse temperature Real(-5, 5)  - BETA
+    (-10, 10),  # Unbounded space for learning rate 1 Real(-10, 10)    - ALPHA
+    (-10, 10)   # Unbounded space for discount factor Real(-10, 10)    - GAMMA
 ]
 
 ## LOAD DATA ##
-# Load the worlds so they don't have to be created again
 loaded = np.load('saved/worlds.npz')
 worlds_saved = [loaded[f'arr_{i}'] for i in range(len(loaded.files))]
 
 rewards_load = np.load('saved/rewards_info.npz')
 rewards_shuffled = [rewards_load[f'arr_{i}'] for i in range(len(rewards_load.files))]
 
-#print("model free number of episodes", n_episodes)
 
 ## OPTIMIZATION ##
-#start_script = time.time()
 
 def objective_function(unbounded_params, worlds_saved, rewards_shuffled, max_steps, n_episodes, n_simulations, rng):
     # Must be in the form f(x, *args), where x is the argument in the form of a 1-D array and args is a 
@@ -67,7 +64,6 @@ def objective_function(unbounded_params, worlds_saved, rewards_shuffled, max_ste
 
     rewards_saved = np.zeros((n_simulations, n_episodes))
     params  = {"beta": beta, "alpha": alpha, "gamma": gamma}
-    #print("params", params)
     for sim in range(n_simulations):
         
         env = VillageWorld(worlds_saved[sim], rng)
@@ -85,14 +81,12 @@ def objective_function(unbounded_params, worlds_saved, rewards_shuffled, max_ste
                                        world_model='baseline',
                                        rewards_exp2=None)
     
-    # It minimizes the negative of the mean reward
-    #print(-np.mean(rewards_saved))
-    #print("1 set of params takes", time.time() - start_script, "seconds")
-    return -np.mean(rewards_saved) # mean of 
+
+    return -np.mean(rewards_saved) 
 
 result_time = time.time()
 result = differential_evolution(objective_function, 
-                                space, 
+                                param_search_space, 
                                 args=(worlds_saved,
                                       rewards_shuffled, 
                                       max_steps, 

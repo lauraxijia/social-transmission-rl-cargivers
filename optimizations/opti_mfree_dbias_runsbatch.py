@@ -22,11 +22,11 @@ rng = np.random.default_rng(seed)
 
 print(f"MF DB diff alg w/ max_steps {max_steps}, n_episodes {n_episodes}, n_simulations {n_simulations}, n_calls {n_calls}")
 
-# Define an unbounded space
-space = [
-    (-5, 5),    # Unbounded space for inverse temperature Real(-5, 5)
-    (-10, 10),  # Unbounded space for discount factor Real(-10, 10)
-    (-10,10)
+# Define parameter space
+param_search_space = [
+    (-5, 5),    # Unbounded space for inverse temperature Real(-5, 5)       - BETA
+    (-10, 10),  # Unbounded space for discount factor Real(-10, 10)         - GAMMA
+    (-10,10)    # Unbounded space for social policy parameter Real(-10,10)  - OMEGA
 ]
 
 
@@ -42,7 +42,7 @@ with open('saved/baseline/mbased_expert_baseline.json', 'r') as json_file:
 for k in expert_data.keys():
     expert_data[k] = np.array(expert_data[k])
 
-# Load the worlds so they don't have to be created again
+# Load the worlds 
 loaded = np.load('saved/worlds.npz')
 worlds_saved = [loaded[f'arr_{i}'] for i in range(len(loaded.files))]
 
@@ -60,9 +60,8 @@ def objective_function(unbounded_params, mf_policy,
     # Bound parameters
     # Apply inverse transformations for continuous parameters
     beta = np.exp(unbounded_params[0])                    # For [0, +inf) bounded
-    #alpha = 1 / (1 + np.exp(-unbounded_params[1]))        # For [0, 1] bounded
     gamma = 1 / (1 + np.exp(-unbounded_params[1]))        # For [0, 1] bounded
-    omega = 1 / (1 + np.exp(-unbounded_params[2]))
+    omega = 1 / (1 + np.exp(-unbounded_params[2]))        # For [0, 1] bounded
 
     rewards_result = np.zeros((n_simulations, n_episodes))
 
@@ -71,9 +70,6 @@ def objective_function(unbounded_params, mf_policy,
                "gamma": gamma, 
                "omega": omega}
     
-    #print("params", params)
-
-    #start_objective = time.time()
         
     rewards_result = social_sim_mf(mf_policy, 
                                    expert_data, worlds_saved, 
@@ -84,12 +80,10 @@ def objective_function(unbounded_params, mf_policy,
                                    world_model = 'baseline',
                                    rewards_exp2=None)
 
-    #print("Optimizing over training", -np.mean(rewards_result[:, :int(n_episodes*training)]))
     return -np.mean(rewards_result[:, :int(n_episodes*training)])
 
-#result_time = time.time()
 result = differential_evolution(objective_function, 
-                                space, 
+                                param_search_space, 
                                 args = (mf_policy, 
                                         expert_data, 
                                         worlds_saved, 
@@ -104,8 +98,7 @@ result = differential_evolution(objective_function,
                                 disp=True,
                                 rng=rng)  
 
-#result_timefinal = (time.time() - result_time)/60
-#print("The optimization takes", result_timefinal, "mins")
+
 
 print("result.x, result.fun", result.x, result.fun)
 
@@ -116,7 +109,7 @@ unbounded_temp, unbounded_gamma, unbounded_omega = result.x
 # Apply inverse transformations to obtain the original bounded parameters
 inverse_temp = np.exp(unbounded_temp)             # For [0, +inf) bounded
 gamma = 1 / (1 + np.exp(-unbounded_gamma))        # For [0, 1] bounded
-omega = 1 / (1 + np.exp(-unbounded_omega))
+omega = 1 / (1 + np.exp(-unbounded_omega))        # For [0, 1] bounded
 
 print(f"Optimized parameters: beta = {inverse_temp}, alpha = {alpha}, gamma = {gamma}, omega = {omega}")
 opti_params = {"beta": inverse_temp,

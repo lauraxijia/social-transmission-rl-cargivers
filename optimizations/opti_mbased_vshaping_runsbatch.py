@@ -27,12 +27,10 @@ print(f"MB VS diff alg w/ max_steps {max_steps}, n_episodes {n_episodes}, n_simu
 
 # Define the parameter space
 param_search_space = [
-    (-5, 5),    # Unbounded space for inverse temperature Real(-5, 5)
-    #(-10, 10),  # Unbounded space for learning rate 1 Real(-10, 10)
-    (-10, 10),  # Unbounded space for discount factor Real(-10, 10)
-    (1, 40),    # Categorical (integer) space for number of steps
-    #(-10, 10),  # Unbounded space for learning rate 2 Real(-10, 10)
-    (-5,5)      # kappa - social parameter Real(-5,5)
+    (-5, 5),    # Unbounded space for inverse temperature Real(-5, 5) - BETA
+    (-10, 10),  # Unbounded space for discount factor Real(-10, 10)   - GAMMA
+    (1, 40),    # Categorical (integer) space for number of steps     - LAMBDA
+    (-5,5)      # Social parameter Real(-5,5)                         - KAPPA
 ]
 
 ## LOAD DATA ##
@@ -65,16 +63,14 @@ def objective_function(unbounded_params, mb_valueshaping, expert_data,
     # Apply inverse transformations for continuous parameters
     beta = np.exp(unbounded_params[0])                    # For [0, +inf) bounded
     gamma = 1 / (1 + np.exp(-unbounded_params[1]))        # For [0, 1] bounded
-    lambda_mean = unbounded_params[2]                    # For [0, 40) bounded
-    kappa_vs = np.exp(unbounded_params[3])
+    lambda_mean = unbounded_params[2]                     # For [0, 40) bounded
+    kappa_vs = np.exp(unbounded_params[3])                # For [0, +inf) bounded
 
     params  = {"beta": beta, "alpha": alpha, 
                "gamma": gamma, "lambda": lambda_mean, 
                "alpha_t": alpha_t, "kappa": kappa_vs}
-    #print("params", params)
 
     rewards_result = np.zeros((n_simulations, n_episodes))
-    #start_objective = time.time()
 
     rewards_result = social_sim_mb(mb_valueshaping, 
                                    expert_data, 
@@ -90,13 +86,8 @@ def objective_function(unbounded_params, mb_valueshaping, expert_data,
                                    world_model='baseline',
                                    rewards_exp2=None)
     
-
-    #print("Optimizing over training", -np.mean(rewards_result[:, :int(n_episodes*training)]))
     return -np.mean(rewards_result[:, :int(n_episodes*training)]) 
 
-# test if objective works
-#objective_function([0, 0, 0, 1, 0, 0], mb_valueshaping, expert_data, worlds_saved, rewards_shuffled, n_simulations, max_steps, n_episodes, training, rng)
-#print("Objective is all fine, rng passed everywhere")
 
 result_time = time.time()
 result = differential_evolution(objective_function, 
@@ -113,8 +104,6 @@ result = differential_evolution(objective_function,
                                 maxiter=n_calls, popsize=popsize, disp=True,
                                 rng=rng, # use seeded rnd number generator
                                 workers = 1) 
-#result_timefinal = (time.time() - result_time)/60
-#print("The optimization takes", result_timefinal, "mins")
 
 print("result.x, result.fun", result.x, result.fun)
 
@@ -125,7 +114,7 @@ unbounded_temp, unbounded_gamma, unbounded_lambda, unbounded_kappa = result.x
 # Apply inverse transformations to obtain the original bounded parameters
 inverse_temp = np.exp(unbounded_temp)             # For [0, +inf) bounded
 gamma = 1 / (1 + np.exp(-unbounded_gamma))        # For [0, 1] bounded
-kappa_vs = np.exp(unbounded_kappa) 
+kappa_vs = np.exp(unbounded_kappa)                # For [0, +inf) bounded
 lambda_mean = unbounded_lambda                    # For [0, 40) bounded
 
 print(f"Optimized parameters: beta = {inverse_temp}, alpha = {alpha}, gamma = {gamma}, lambda = {lambda_mean}, alpha_t = {alpha_t}, kappa_vs = {kappa_vs}")

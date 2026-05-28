@@ -73,7 +73,7 @@ def get_end_center(direction, end, grid_size):
     else:  # direction == "left"
         return (end[1] + 0.25, grid_size - end[0] - 0.5)
 
-# plot the arrows for the tm
+# Plot arrows to illustrate tm
 def draw_arrow(ax, start_center, end_center, color):
     """Draws an arrow from start center to end center."""
     ax.annotate("",
@@ -135,7 +135,6 @@ def plot_world(env, world, reward_info, state_num = None, boundaries = None, rew
         for i in range(reward_info.shape[0]):
             state = reward_info[i][0]
             reward_value = reward_info[i][1]
-            #reward_sets = reward_info[i][2]  #SK: Changed sets to fixed value
             y, x = state_to_xy(world, state)
         
             if reward_value == 75:
@@ -162,7 +161,6 @@ def plot_world(env, world, reward_info, state_num = None, boundaries = None, rew
     if boundaries:
         add_boundaries(ax, world, boundaries, grid_size)
 
-    
     # Add dashed lines for specific squares
     if dashed_squares is not None:
         
@@ -230,7 +228,7 @@ def plot_world(env, world, reward_info, state_num = None, boundaries = None, rew
     if savefigpath:
         fig.savefig(f'saved/Figures/{savefigpath}.pdf', bbox_inches='tight')
 
-def plot_figure1(env, world, state_num = None, boundaries = None, dashed_squares = None, transition_matrix = None, exp = 'baseline', ax = None):
+def plot_figure1(env, world, state_num = None, boundaries = None, dashed_squares = None, transition_matrix = None, start_positions = 'baseline', ax = None):
     """
     Plots the world grid with optional attributes
     env: Environment object
@@ -239,7 +237,7 @@ def plot_figure1(env, world, state_num = None, boundaries = None, dashed_squares
     boundaries: List of tuples with the boundaries
     dashed_squares: List of states to draw dashed squares
     transition_matrix: 3D numpy array with the transition matrix
-    exp: String indicating the experiment type (e.g., 'baseline', 'exp2', 'exp3') to determine the start locations
+    start_positions: String indicating the start locations ('baseline' for centered positions, 'exp3' for shifted start positions or none)
     savefigpath: Path to save the figure
     ax: Matplotlib axis object
 
@@ -279,10 +277,6 @@ def plot_figure1(env, world, state_num = None, boundaries = None, dashed_squares
     if boundaries:
         add_boundaries(ax, world, boundaries, grid_size)
 
-    
-    # Add thicker lines for the tiles
-    ax.plot([0, 10], [5,5], 'black', linewidth=2)
-    ax.plot([5, 5], [0,10], 'black', linewidth=2)
     # Add thicker lines for the edges
     ax.plot([0,10], [0,0], color='black', linewidth=5)
     ax.plot([0,10], [10,10], color='black', linewidth=5)
@@ -293,25 +287,25 @@ def plot_figure1(env, world, state_num = None, boundaries = None, dashed_squares
             tile = env.get_tile_from_state(state)
             if tile == env.tileA:
                 y, x = state_to_xy(world, state)
-                ax.add_patch(plt.Rectangle((x, grid_size - y - 1), 1, 1, color="#feffaa7a"))
+                ax.add_patch(plt.Rectangle((x, grid_size - y - 1), 1, 1, color="#f6cdc1"))#c49486")) #"#feffaa71"))
             elif tile == env.tileB:
                 y, x = state_to_xy(world, state)
-                ax.add_patch(plt.Rectangle((x, grid_size - y - 1), 1, 1, color="#a0c8ff78"))
+                ax.add_patch(plt.Rectangle((x, grid_size - y - 1), 1, 1, color="#B0A8C8")) #"#57285779"))
             elif tile == env.tileC:
                 y, x = state_to_xy(world, state)
-                ax.add_patch(plt.Rectangle((x, grid_size - y - 1), 1, 1, color="#ffa0a071"))
+                ax.add_patch(plt.Rectangle((x, grid_size - y - 1), 1, 1, color="#e4a9a5")) #"#B87878")) #"#A2313179"))
             elif tile == env.tileD:
                 y, x = state_to_xy(world, state)
-                ax.add_patch(plt.Rectangle((x, grid_size - y - 1), 1, 1, color="#ce73c976"))
+                ax.add_patch(plt.Rectangle((x, grid_size - y - 1), 1, 1, color="#b8d4f0"))#b8d4f0"))
 
     # Add patch to the initial states
-    if exp == 'baseline':
+    if start_positions == 'baseline':
         ax.add_patch(plt.Rectangle((5, 5), 1, 1, color="#99d8c9"))
         ax.add_patch(plt.Rectangle((5, 4), 1, 1, color="#99d8c9"))
         ax.add_patch(plt.Rectangle((4, 5), 1, 1, color="#99d8c9"))
         ax.add_patch(plt.Rectangle((4, 4), 1, 1, color="#99d8c9"))
-    elif exp == 'exp3':
-        ax.add_patch(plt.Rectangle((3, 3), 1, 1, color="#99d8c9"))
+    elif start_positions == 'exp3':
+        #ax.add_patch(plt.Rectangle((3, 3), 1, 1, color="#99d8c9"))
         ax.add_patch(plt.Rectangle((4, 3), 1, 1, color="#99d8c9"))
         ax.add_patch(plt.Rectangle((5, 3), 1, 1, color="#99d8c9"))
         ax.add_patch(plt.Rectangle((6, 3), 1, 1, color="#99d8c9")) 
@@ -364,7 +358,7 @@ def plot_figure1(env, world, state_num = None, boundaries = None, dashed_squares
 
     
 
-def plot_individual_tiles(env, world, save_dir="saved/figures/world", **kwargs):
+def plot_individual_tiles(env, world, save_dir="saved/figures/world", start_positions=None, **kwargs):
     """
     Save the 4 quadrants (tiles) as separate images.
     
@@ -392,7 +386,7 @@ def plot_individual_tiles(env, world, save_dir="saved/figures/world", **kwargs):
         fig, ax = plt.subplots(figsize=(4, 4))
         
         # Plot figure 1 on the entire world
-        plot_figure1(env, world, ax=ax, savefigpath=False, **kwargs)
+        plot_figure1(env, world, ax=ax, start_positions=start_positions, **kwargs)
         
         # Crop to the respective quadrant by setting the limits of the axes
         ax.set_xlim(x_min, x_max)
@@ -569,7 +563,7 @@ def plot_with_se(ax, x, data, color, label, linestyle='-'):
         ax.fill_between(x, mean - se, mean + se, color=color, alpha=0.2)  # Shaded region
 
 # ALL MODELS STEPS
-def all_models(mbased_metric, mfree_metric, n_episodes, training, title, ylabel):
+def all_models(mbased_metric, mfree_metric, n_episodes, training, exp, ylabel, expert):
     
     """
     Plot the performance of all models with SEs
@@ -577,8 +571,9 @@ def all_models(mbased_metric, mfree_metric, n_episodes, training, title, ylabel)
     mfree_metric: List of arrays with the metrics for model free
     n_episodes: Number of episodes
     training: Percentage of training
-    title: Title of the plot
+    exp: String indicating the experiment type (e.g., 'baseline', 'exp2', 'exp3') for legend placements
     ylabel: Label of the y axis
+    expert: Expert data
 
     Returns:
     fig: Matplotlib figure object
@@ -587,17 +582,38 @@ def all_models(mbased_metric, mfree_metric, n_episodes, training, title, ylabel)
     expert_gone = int(n_episodes * training)
     fig, ax = plt.subplots(figsize=(6, 4))
 
+    # Expert performance line
+    ax.axhline(
+    expert,
+    color="black",
+    linestyle="-",
+    linewidth=2,
+    xmin=0,
+    xmax=19
+    )
+
+
     assert mbased_metric[0].shape[1] == mfree_metric[0].shape[1], "The number of episodes must be the same for all models"
     xs = np.arange(1, mbased_metric[0].shape[1]+1)
 
     plot_with_se(ax, xs, mbased_metric[0], "dimgray", "Asocial Learning")
     plot_with_se(ax, xs, mbased_metric[1], "darkorange", "Decision Bias")
     plot_with_se(ax, xs, mbased_metric[2], "hotpink", "Value Shaping")
-    
+
     plot_with_se(ax, xs, mfree_metric[0], "dimgray", "Asocial Learning", linestyle='--')
     plot_with_se(ax, xs, mfree_metric[1], "darkorange", "Decision Bias", linestyle='--')
     plot_with_se(ax, xs, mfree_metric[2], "hotpink", "Value Shaping", linestyle='--')
 
+    # Optional label
+    ax.text(
+        n_episodes * 0.9,  # near left edge
+        expert*0.85,
+        "Expert",
+        ha="left",
+        va="bottom",
+        fontsize=14,
+        color="black"
+    )
     ax.set_xlabel("Episodes", fontsize = 20)
     ax.set_ylabel(ylabel, fontsize = 20)
     ax.set_xticks(np.insert(np.arange(5, n_episodes+1, 5), 0, 1))
@@ -609,15 +625,14 @@ def all_models(mbased_metric, mfree_metric, n_episodes, training, title, ylabel)
     # Separator line for training and testing phase
     ax.axvline(expert_gone, linestyle = '--' , color = "black")
     ax.text(expert_gone / 2, ax.get_ylim()[1] * 0.95,
-        "Training", ha='center', va='bottom', fontsize=20, color = "black")
+       "Training", ha='center', va='bottom', fontsize=20, color = "black")
 
     ax.text((expert_gone + n_episodes) / 2, ax.get_ylim()[1] * 0.95,
-        "Test", ha='center', va='bottom', fontsize=20, color = "black")
+   "Test", ha='center', va='bottom', fontsize=20, color = "black")
 
 
     # Setting the default font size for xticks
     plt.rcParams['xtick.labelsize'] = 15
-    #plt.title(title)
 
     # Custom legend
     type_of_model = [
@@ -629,26 +644,26 @@ def all_models(mbased_metric, mfree_metric, n_episodes, training, title, ylabel)
     social_strategy = [
     Line2D([0], [0], color = "dimgray", linewidth=1.5, label = "AS"),
     Line2D([0], [0], color = "darkorange", linewidth=1.5, label = "DB"),
-    Line2D([0], [0], color = "hotpink", linewidth=1.5, label = "VS")
+    Line2D([0], [0], color = "hotpink", linewidth=1.5, label = "VS"),
         ]
     dummy = Line2D([], [], linestyle='None', label='')
 
 
     # Baseline legend
-    #bold_title = FontProperties(weight='bold', size=14)
-    #legend1 = ax.legend(handles=social_strategy, title = "SL", loc='upper left', bbox_to_anchor=(0.51, 0.75), fontsize = 12, title_fontproperties=bold_title,frameon=True)
-    #ax.add_artist(legend1)  # Add the first legend to the axes
-    #legend2 = ax.legend(handles=type_of_model + [dummy], title = "RL", loc='upper left', bbox_to_anchor=(0.75, 0.75), fontsize = 12, title_fontproperties=bold_title, frameon=True)
-    #ax.text(0.74, 0.55, "×", transform=ax.transAxes, fontsize=18, ha= 'center', va = 'center')
+    if exp == 'baseline':
+        bold_title = FontProperties(weight='bold', size=14)
+        legend1 = ax.legend(handles=social_strategy, title = "SL", loc='upper left', bbox_to_anchor=(0.51, 0.75), fontsize = 12, title_fontproperties=bold_title,frameon=True)
+        ax.add_artist(legend1)  # Add the first legend to the axes
+        legend2 = ax.legend(handles=type_of_model + [dummy], title = "RL", loc='upper left', bbox_to_anchor=(0.75, 0.75), fontsize = 12, title_fontproperties=bold_title, frameon=True)
+        ax.text(0.74, 0.55, "×", transform=ax.transAxes, fontsize=18, ha= 'center', va = 'center')
+    if exp == 'exp2':
+        bold_title = FontProperties(weight='bold', size=14)
+        legend1 = ax.legend(handles=social_strategy, title = "SL", loc='upper left', bbox_to_anchor=(0.51, 0.65), fontsize = 12, title_fontproperties=bold_title,frameon=True)
+        ax.add_artist(legend1)  # Add the first legend to the axes
+        legend2 = ax.legend(handles=type_of_model, title = "RL", loc='upper left', bbox_to_anchor=(0.75, 0.65), fontsize = 12, title_fontproperties=bold_title, frameon=True)
+        ax.text(0.74, 0.45, "×", transform=ax.transAxes, fontsize=18, ha= 'center', va = 'center')
 
-    # EXP2  legend
-    bold_title = FontProperties(weight='bold', size=14)
-    legend1 = ax.legend(handles=social_strategy, title = "SL", loc='upper left', bbox_to_anchor=(0.51, 0.65), fontsize = 12, title_fontproperties=bold_title,frameon=True)
-    ax.add_artist(legend1)  # Add the first legend to the axes
-    legend2 = ax.legend(handles=type_of_model, title = "RL", loc='upper left', bbox_to_anchor=(0.75, 0.65), fontsize = 12, title_fontproperties=bold_title, frameon=True)
-    ax.text(0.74, 0.45, "×", transform=ax.transAxes, fontsize=18, ha= 'center', va = 'center')
 
-   
     # Setting the default font size for xticks
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)

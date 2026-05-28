@@ -74,19 +74,18 @@ def bfs_shortest_path(adjacency_list, start, reward_states):
                 visited.add(neighbor)
     return float('inf')  # If no path is found
 
-def value_correlation(expert_value, expert_states, agent_value, agent_states, true_tm, reward_states_per_sim, n_simulations, max_d, all_states=True):
+def value_correlation(expert_value, agent_value, agent_states, true_tm, reward_states_per_sim, n_simulations, max_d, states="all"):
     """
     Calculate the correlation between the expert and agent values for each distance to the reward state
     
     expert_value: np.array of shape (n_simulations, n_states, n_actions)
-    expert_states: np.array of shape (n_simulations, n_states, n_actions)
     agent_value: np.array of shape (n_simulations, n_states, n_actions)
     agent_states: np.array of shape (n_simulations, n_episodes, max_steps)
     true_tm: np.array of shape (n_simulations, n_states, n_actions, n_states) 
     reward_states: list of reward states
     n_simulations: number of simulations
     max_d: maximum distance to the reward state
-    all_states: boolean, if True consider all states, if False consider only visited states
+    states: string, consider "all" states, "visited" states, or "unvisited" states for the correlation calculation
 
     Returns:
     corrs: np.array of shape (n_simulations, max_d)
@@ -95,28 +94,30 @@ def value_correlation(expert_value, expert_states, agent_value, agent_states, tr
     corrs = np.zeros((n_simulations, max_d - 1))
     possible_distances = np.arange(1, max_d)
 
+    n_states = np.array(true_tm).shape[1]
+    all_states = np.arange(n_states)
+
     # Assuming calculate_distances_to_rewards and other functions can be optimized or vectorized
     for sim in range(n_simulations):
 
-        # Optional: Consider only visited states
-        if not all_states:
-            if expert_states is not None:
-                agent_visited_states = np.unique(agent_states[sim][~np.isnan(agent_states[sim])].astype(int))
-                expert_visited_states = np.unique(expert_states[sim][~np.isnan(expert_states[sim])].astype(int))
-                visited_states = np.intersect1d(agent_visited_states, expert_visited_states)
-            else:
-                visited_states = np.unique(agent_states[sim][~np.isnan(agent_states[sim])].astype(int))
+        # States visited by the agent
+        agent_visited_states = np.unique(agent_states[sim][~np.isnan(agent_states[sim])].astype(int))
+
+        if states == "all":
+                considered_states = all_states
+        elif states == "visited":
+            # Only consider visited states
+            considered_states = agent_visited_states
+        elif states == "unvisited":
+            # Only consider unvisited states
+            considered_states = np.setdiff1d(all_states, agent_visited_states)
 
         # Sum the actions for each state
         true_tm_actions = np.sum(true_tm[sim], axis=1) # Transform to (n_states, n_states)
         distances_to_rewards = calculate_distances_to_rewards(true_tm_actions, reward_states_per_sim[sim][:,0].tolist())
         
         for p in possible_distances:
-            if all_states:
-                state_list = [state for state, distance in distances_to_rewards.items() if distance == p]
-            else:
-                # Only consider visited states
-                state_list = [state for state in visited_states if distances_to_rewards[state] == p]
+            state_list = [state for state in considered_states if distances_to_rewards[state] == p]
             
             if state_list:
                 v_expert = expert_value[sim][state_list].flatten()
@@ -126,10 +127,8 @@ def value_correlation(expert_value, expert_states, agent_value, agent_states, tr
                 if var_expert == 0 or var_agent == 0:
                     corrs[sim, p - 1] = 0
                 else:
-                    # Get the spearmanr
-                    #print(spearmanr(v_expert, v_agent)[0])
                     corrs[sim, p - 1] = spearmanr(v_expert, v_agent)[0]
-                    
+
     return corrs
 
 def tm_ztransform_distance(expert_tm, expert_states, agent_tm, agent_states, initial_tm, reward_states_per_sim, n_simulations, max_d, all_states=True):
@@ -293,22 +292,30 @@ def compute_true_value_function(true_tms, reward_info, discount_factor=0.99, the
     n_simulations, n_states, n_actions, _ = np.array(true_tms).shape
 
     # Initialize true Q values
-    true_q_values = np.zeros((n_simulations, n_states, n_actions))
+    true_q_values = np.ones((n_simulations, n_states, n_actions))
 
     for sim in range(n_simulations):
         # Get transition probabilities (same for all episodes)
         P = true_tms[sim]
 
-        # Get reward per state (default -1 for non-reward states)
-        R = np.full(n_states, -1.0, dtype=float)
+        # Get reward per state 
+        R = np.zeros(n_states, dtype=float)
+        count = np.zeros(n_states, dtype=int) 
         is_goal = np.zeros(n_states, dtype=bool)
-        for state, reward in reward_info[sim][0]: # Same rewards for all episodes
-            R[int(state)] = reward 
-            if reward > 0:  # Mark goal states
-                is_goal[int(state)] = True
+        for episode in reward_info[sim]: 
+            for state, reward in episode:
+                if reward > 0:  # Mark goal states
+                    is_goal[int(state)] = True
+                else:
+                    reward = -1 # Moving cost
+                R[int(state)] += reward 
+                count[int(state)] += 1
+
+        count[count == 0] = 1  # Avoid division by zero
+        R = R/count # Average reward per state across episodes (because ofto account for noise in rewards)
 
         # Value iteration
-        Q = np.zeros((n_states, n_actions))
+        Q = np.ones((n_states, n_actions))
 
         for i in range(max_iter):
             delta = 0

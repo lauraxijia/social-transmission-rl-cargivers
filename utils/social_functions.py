@@ -17,7 +17,6 @@ def social_sim_mf(algorithm, expert_data,
     steps_to_reward = np.zeros((n_simulations, n_episodes))
 
     final_value_saved = np.zeros((n_simulations, 100, 4))
-    #value_saved = np.zeros((n_simulations, n_episodes+1, 64, 4))
     
     # States expert goes through - mainly to check results
     states_saved = np.zeros((n_simulations, n_episodes, max_steps+1))
@@ -29,22 +28,18 @@ def social_sim_mf(algorithm, expert_data,
     if optimization:
         
         for sim in range(n_simulations):
-            #print("Sim", sim)
-       
+
             # Extract data from the expert
-            # Take from the last n_simulations from where the expert appears
             env = VillageWorld(worlds_saved[sim], rng)
             
             experts_actions = expert_data['actions_saved'][sim]
             experts_states = expert_data['states_saved'][sim]
 
-            # use 2nd gen rewards for this optimization?
             if rewards_exp2:
                 rwds_exp2 = rewards_exp2[sim]
             else:
                 rwds_exp2 = None
 
-            # algorithm == mf_policy here (models.mf_dbias or in models.mf_valueshaping)
             rewards_result_epi_saved[sim, :] = algorithm(env, rewards_placed[sim], 
                                                          experts_states, experts_actions, 
                                                          worlds_saved[sim],
@@ -52,10 +47,7 @@ def social_sim_mf(algorithm, expert_data,
                                                          training, 
                                                          rng, 
                                                          optimization, world_model, rwds_exp2)
-            
-            #sum_rewards[sim, :] = reward_epi_steps
-
-            
+                   
         return rewards_result_epi_saved
     
     else:
@@ -67,7 +59,6 @@ def social_sim_mf(algorithm, expert_data,
             experts_actions = expert_data['actions_saved'][sim]
             experts_states = expert_data['states_saved'][sim]
 
-            # Use 2nd gen rewards for this optimization?
             if rewards_exp2:
                 rwds_exp2 = rewards_exp2[sim]
             else:
@@ -106,7 +97,7 @@ def social_sim_mb(algorithm,
 
     n_states = 100
     freq = n_episodes // 5
-     # Final transition matrix for each 5 simulation
+    # Final transition matrix for each 5 simulation
     transition_mat_saved = np.zeros((n_simulations, freq + 1, n_states, 4, n_states))
     final_tm_saved = np.zeros((n_simulations, n_states, 4, n_states))
     # total reward for each episode
@@ -131,10 +122,8 @@ def social_sim_mb(algorithm,
     if optimization:
 
         for sim in range(n_simulations):
-            #print("Sim", sim)
             
             env = VillageWorld(worlds_saved[sim], rng)
-            #expert_dic['initial_loc'].tolist()[sim]
             
             experts_actions = expert_data['actions_saved'][sim]
             experts_states = expert_data['states_saved'][sim]
@@ -144,7 +133,6 @@ def social_sim_mb(algorithm,
             else:
                 rwds_exp2 = None
 
-            # algorithm == mb_policy here (models.mb_dbias or in models.mb_value_shaping)
             rewards_result_epi_saved[sim, :] = algorithm(env, 
                                                          rewards_placed[sim], 
                                                          experts_states, 
@@ -159,8 +147,6 @@ def social_sim_mb(algorithm,
                                                          world_model,
                                                          rwds_exp2)
             
-            #sum_rewards[sim, :] = reward_epi_steps
-        #print("reward_epi_step.shape", reward_epi_steps.shape)
         return rewards_result_epi_saved
     
     else:
@@ -194,9 +180,7 @@ def social_sim_mb(algorithm,
             tm_epi_saved.append(tm_epi)
             # Not saved 
             rewards_result_steps[sim, :] = np.sum(reward_sums_steps, axis = 1)
-            #transition_mat_saved[sim, :, :, :, :] = tm_per_epi
-            #final_tm_saved[sim, :, : , :] = tm_final
-        
+
         return final_value_saved, rewards_result_epi_saved, states_saved, actions_saved, steps_to_reward, tm_saved, value_epi_saved, tm_epi_saved
 
 
@@ -209,8 +193,7 @@ def simulate_learning(algorithm, n_simulations, max_steps,  n_episodes, params, 
     for sim in range(n_simulations):
         # Initialize the world
         grid_world = VillageWorld()
-        #print("starting sim", sim, "for params", params)
-        # update_learn_environment_dynaq(grid_world, max_steps, n_episodes, params, reward_distribution)
+
         reward_epi_steps, t_to_reward = algorithm(grid_world, max_steps, n_episodes, params, reward_distribution)
         
         sum_rewards[sim,:] = np.sum(reward_epi_steps, axis=1)
@@ -230,16 +213,15 @@ def extract_belief(algorithm, n_simulations, expert_dic, max_steps, n_episodes, 
     for sim in range(n_simulations):
 
         # Extract data from the expert
-        #value_expert = expert_dic_ql['value_per_sim'][sim]
         experts_rewards = expert_dic['reward_location'][sim]
-        experts_init_loc = expert_dic['initial_loc'][sim] #expert_dic['initial_loc'].tolist()[sim]
+        experts_init_loc = expert_dic['initial_loc'][sim] 
         experts_actions = expert_dic['actions_saved'][sim]
         experts_states = expert_dic['states_saved'][sim]
         experts_worlds  = expert_dic['experts_world'][sim]
 
         tran_dq = algorithm(experts_init_loc, experts_rewards, experts_states, experts_actions, experts_worlds, max_steps, 
                                                     n_episodes, params, reward_dis, x)
-        #print("trans_dp",tran_dq.shape)
+        
         transition_mat_saved[sim, :, :, :, :] = tran_dq
 
         return transition_mat_saved
