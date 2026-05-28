@@ -77,7 +77,7 @@ agent_function = mb_pedagogical_expert
 
 ## SIMULATION LOOP ##
 print(f"MB pedagogical expert simulations with {world_model} world model")
-for sim in tqdm(range(n_simulations)):
+for sim in tqdm.tqdm(range(n_simulations)):
     env = VillageWorld(worlds_saved[sim], rng)
     final_value, reward_sums_epi, state_mat, action_mat, steps_to_reward, tm_final, model_r, value_epi, tm_epi, reward_sums_steps  = agent_function(params, 
                                                                                                                                                     env, 
