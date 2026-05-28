@@ -97,7 +97,6 @@ def mf_policy(env, rewards_info, experts_states, experts_actions,
             
             # FOR THE TERMINATION EPISODE
             if reward > 0:
-                #print("I am breaking")
                 steps_to_reward[episode] = t +1 
                 
                 break  # episode ends

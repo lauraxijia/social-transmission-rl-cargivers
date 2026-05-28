@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import json
-import time
 from tqdm import tqdm
 
 from utils.world import VillageWorld
@@ -73,8 +72,7 @@ value_epi_saved = []
 
 ### SIMULATION LOOP ##
 print(f"MF Agent simulations with {world_model} world model")
-start_time_training = time.time()
-            
+
 for sim in tqdm(range(n_simulations)):
     # Initialize the world
     env = VillageWorld(worlds_saved[sim], rng)
@@ -102,9 +100,7 @@ for sim in tqdm(range(n_simulations)):
     actions_saved[sim, :, :] = action_mat
     rewards_result_steps[sim, :] = np.sum(reward_sums_steps, axis = 1)
 
-end_time_training = time.time()
 
-#print(f"Training took {end_time_training - start_time_training} seconds")
 
 ## SAVE DATA ##
 data_mf = {"sum_rewards": rewards_result_epi_saved.tolist(), 

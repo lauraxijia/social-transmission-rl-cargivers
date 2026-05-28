@@ -61,12 +61,12 @@ def mb_policy(env,
             agent_location = env.initial_loc(exp = world_model)
 
         state = world[agent_location]
-        # save initial state
+        # Save initial state
         state_mat[episode, 0] = state
 
         
         # Take agent's last states and actions 
-        exp_states, exp_actions = experts_states[-n_episodes:,:], experts_actions[-n_episodes:,:]
+        exp_states, _ = experts_states[-n_episodes:,:], experts_actions[-n_episodes:,:]
 
         # Sample n_steps from Poisson distribution with mean lambda 
         n_steps = rng.poisson(params['lambda'], size=max_steps)
