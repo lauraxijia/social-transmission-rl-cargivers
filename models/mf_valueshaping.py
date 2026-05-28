@@ -59,7 +59,7 @@ def mf_valueshaping(env, rewards_info, experts_states, experts_actions, world, m
                     # Observe expert's state (t+1 because of initial state) and action (taken at time t)
                     exp_state, exp_action = exp_states[episode, t], exp_actions[episode, t]
                     # Update value shaping 
-                    value = value_shaping(value, exp_action, exp_state,params)
+                    value = value_shaping(value, exp_action, exp_state, params['kappa'])
                     _, action = softmax_policy(value, state, env.n_actions, params['beta'], rng)
 
                 # If the expert has found the reward - Individual learning

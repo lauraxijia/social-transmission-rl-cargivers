@@ -1,9 +1,11 @@
+from collections import defaultdict
+
 import numpy as np
 from utils.helper_functions import softmax_policy, q_learning, dynaq_planner, find_reward, model_update
 
 """Policy of model-based pedagogical expert."""
 
-def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episodes_total, n_teach_episodes, rng, optimization = False, world_model='baseline', learner_function = None, n_learner = None):
+def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episodes_total, n_teach_episodes, rng, optimization = False, world_model='baseline', learner_function = None, learner_params = None, n_learner = None):
 
     # Assert that exp is either 'baseline' or 'exp2' or 'exp3'
     assert world_model in ['baseline', 'exp2', 'exp3'], "exp must be 'baseline', 'exp2', or 'exp3'"
@@ -41,8 +43,32 @@ def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episode
     value_steps_list_epi = []
     value_finalepi_list = []
 
-    # TODO: Initialize dictionary of learners for n_learner
-    learner_candidates = {}
+    # Initialize dictionary of learners for n_learner
+    learner_candidates = {
+        i: learner_function(
+            rng=rng,
+            params=learner_params,
+            env=env,
+            world=world,
+            rewards_info=rewards_info,
+            rewards_exp2=None, 
+            expert_states=np.full((n_episodes_total, max_steps), np.nan),
+            expert_actions=np.full((n_episodes_total, max_steps), np.nan),
+            n_episodes=n_teach_episodes,  # Learners only learn during the teaching episodes
+            training_split=1.0,  # always "training" during teaching
+            max_steps=max_steps,
+            optimization=False,
+            world_model=world_model
+        )
+        for i in range(n_learner)
+    }
+
+    # Initialize teacher predictions
+    teacher_predictions = defaultdict(
+        lambda: defaultdict(
+            lambda: defaultdict(dict)
+            )
+        )
 
     train_episodes = n_episodes_total - n_teach_episodes
 
@@ -61,6 +87,12 @@ def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episode
 
         # Sample n_steps from Poisson distribution with mean lambda 
         n_steps = rng.poisson(params['lambda'], size=max_steps)
+
+        # Initialize start positions for learner candidates
+        if episode >= train_episodes:
+            for learner in learner_candidates.values():
+                learner.learning_mode = learner.TRAINING
+                learner.initialize_start_position()
 
         # Loop over steps
         for t in range(max_steps):
@@ -104,20 +136,27 @@ def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episode
 
             # --- Teaching ---
             else:
-                # TODO: Implement teaching policy. Does the expert continue to learn during the teaching episodes? If so, move this part to line 72
-                for a in range(4):
-                    for learner in range(n_learner):
-                        # Simulate learner's behavior based on potential action to demonstrate in expert state --> "state" (move as separate function to helper_functions.py)
-                        pass
+                for action in range(env.n_actions):
+                    for learner_id, learner in learner_candidates.items():
+                        # Simulate learner's behavior 
+                        Q_sim, learner_action_sim = learner.simulate_single_step(reward_placed, expert_state = state, expert_action = action)
+                        teacher_predictions[episode][t][action][learner_id] = {
+                            'Q': Q_sim,
+                            'action': learner_action_sim
+                        }
                 
                 # Compute objective (e.g., average difference between value of selected action of learner and expert's optimal action) and select action that maximizes the objective (move as separate function to helper_functions.py)
                 # If we use the average difference between value of selected action of learner and expert's optimal action, we need the optimal action of the expert, which could either be sampled from the softmax or be argmax_a of the learner's state. 
                 # But note that different learner candidates might be in different states!
                 best_action = None 
-                action = teaching_objective(learner_candidates)
+                action_show = teaching_objective(learner_candidates)
+
+                # Update the learners based on the observed expert action
+                for learner in learner_candidates.values():
+                    learner.perform_single_step(reward_placed, expert_state = state, expert_action = action_show)
 
                 # Calculate new location based on the action
-                next_agent_location, next_state = env.move_agent(action, state, agent_location, reward_placed)
+                next_agent_location, next_state = env.move_agent(action_show, state, agent_location, reward_placed)
 
                 # Observe reward for that action 
                 reward = find_reward(state, reward_placed)  
@@ -126,7 +165,7 @@ def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episode
 
 
             # Store action
-            action_mat[episode,t] = action
+            action_mat[episode,t] = action_show
             
             # If positive reward is found, end episode
             if reward > 0:
@@ -152,4 +191,4 @@ def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episode
         return reward_sums_epi
     
     else:
-       return value, reward_sums_epi, state_mat, action_mat, steps_to_reward, transition_belief, model_r, value_perepi, belief_perepi, reward_per_step # value_finalepi_list, value_steps_list_epi
+       return value, reward_sums_epi, state_mat, action_mat, steps_to_reward, transition_belief, model_r, value_perepi, belief_perepi, reward_per_step, teacher_predictions

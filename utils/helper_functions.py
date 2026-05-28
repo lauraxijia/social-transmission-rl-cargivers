@@ -143,14 +143,14 @@ def decision_bias(env, exp_states,
     return action 
 
 
-def value_shaping(value, expert_action, expert_state, params):
+def value_shaping(value, expert_action, expert_state, kappa):
 
     """
     Adds a bonus to the value of the agent for the expert's observed state and action
     value: Value function (n_states, n_actions)
     expert_action: Action taken by the expert (int)
     expert_state: State where the expert is (int)
-    params: Dictionary with the parameters * params['kappa] - (float)
+    kappa: Value shaping parameter (float) - how much the agent should value the expert's action in the expert's state
     n_actions = 4
 
     Returns:
@@ -160,7 +160,7 @@ def value_shaping(value, expert_action, expert_state, params):
     expert_state = int(expert_state)
     expert_action = int(expert_action) 
     
-    value[expert_state, expert_action] += params["kappa"]
+    value[expert_state, expert_action] += kappa
 
     return value
 
