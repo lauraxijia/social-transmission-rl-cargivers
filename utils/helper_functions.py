@@ -404,5 +404,52 @@ def social_policy(env, world, exp_states, episode, t, agent_state, agent_locatio
     # Create one-hot probability distribution over all actions (for mixing of policies)
     pi_social = np.zeros(4)
     pi_social[action] = 1
-    
+    return pi_social
+
+
+def teaching_objective(method, **ctx):
+    """Dispatcher for the pedagogical teacher's action-selection objective."""
+    if method == "q_mismatch":
+        return _obj_q_mismatch(**ctx)
+    if method == "action_gap":
+        return _obj_action_gap(**ctx)
+    if method == "cumulative_reward":
+        # Stub: full-trajectory rollout objective not yet implemented.
+        teacher_Q = ctx["teacher_Q"]
+        expert_state = ctx["expert_state"]
+        return int(np.argmax(teacher_Q[expert_state]))
+    raise ValueError(f"Unknown teaching objective: {method}")
+
+
+def _obj_q_mismatch(predictions_at_t, learner_candidates, teacher_Q, **_):
+    """Objective 2: pick a_T that minimizes the average L2 distance between
+    Q_E(s_l, ·) and Q_l(s_l, ·) across learner candidates, evaluated at each
+    learner's current state s_l after the hypothetical demo (s_t, a_T)."""
+    scores = {}
+    for a_T, by_learner in predictions_at_t.items():
+        diffs = []
+        for l_id, sim in by_learner.items():
+            s = learner_candidates[l_id].current_state
+            diffs.append(np.linalg.norm(teacher_Q[s] - sim['Q'][s]))
+        scores[a_T] = float(np.mean(diffs))
+    return int(min(scores, key=scores.get))
+
+
+def _obj_action_gap(predictions_at_t, learner_candidates, teacher_Q, **_):
+    """Objective 3: pick a_T that maximizes the average value gap
+    Q_l(s_l, a*) - Q_l(s_l, â), where a* = argmax_a Q_E(s_l, a) is the
+    expert-optimal action at the learner's state and â is the action the
+    learner would sample after observing the hypothetical demo (s_t, a_T)."""
+    scores = {}
+    for a_T, by_learner in predictions_at_t.items():
+        gaps = []
+        for l_id, sim in by_learner.items():
+            s = learner_candidates[l_id].current_state
+            a_star = int(np.argmax(teacher_Q[s]))
+            a_hat = int(sim['action'])
+            Q_l = sim['Q']
+            gaps.append(float(Q_l[s, a_star] - Q_l[s, a_hat]))
+        scores[a_T] = float(np.mean(gaps))
+    return int(max(scores, key=scores.get))
+
     return pi_social
