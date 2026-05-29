@@ -1,6 +1,6 @@
 import numpy as np
 import json
-import tqdm
+from tqdm import tqdm
 import os
 
 from models.mb_pedagogical_expert import mb_pedagogical_expert
@@ -13,9 +13,9 @@ from utils.world import VillageWorld
 # Simulation parameters
 save = True
 optimization = False
-world_model = "baseline" # "baseline" "exp2" "exp3"
+exp = "baseline" # "baseline" "exp2" "exp3"
 n_states = 100
-n_simulations = 1 # 1000
+n_simulations = 1000 # 1000
 n_train_episodes = 100
 n_teach_episodes = 20
 n_episodes_total = n_train_episodes + n_teach_episodes 
@@ -32,7 +32,11 @@ rng = np.random.default_rng(seed)
 ## LOAD DATA ##
 # Load parameters
 print("Params pedagogical expert:")
-with open(f'saved/opti_results/mbased_pedagogical_expert.json', 'r') as json_file:
+#with open(f'saved/opti_results/mbased_pedagogical_expert.json', 'r') as json_file:
+#    params = json.load(json_file)["opti_params"]
+#print(params)
+# For now use the same params as mb_expert
+with open(f'saved/opti_results/mbased_expert.json', 'r') as json_file:
     params = json.load(json_file)["opti_params"]
 print(params)
 
@@ -46,7 +50,7 @@ rewards_shuffled = [rewards_load[f'arr_{i}'] for i in range(len(rewards_load.fil
 # Load learner class and params
 if learner == "MF-VS":
     learner_function = MFValueShapingAgent
-    with open(f'saved/opti_results/mf_valueshaping.json', 'r') as json_file:
+    with open(f'saved/opti_results/mfree_vshaping.json', 'r') as json_file:
         learner_params = json.load(json_file)["opti_params"]
 
 # TODO: Is there anything else we want to store?
@@ -77,22 +81,23 @@ tm_epi_saved = []
 agent_function = mb_pedagogical_expert
 
 ## SIMULATION LOOP ##
-print(f"MB pedagogical expert simulations with {world_model} world model")
-for sim in tqdm.tqdm(range(n_simulations)):
+print(f"Run exp {exp} with MB pedaogical expert for {n_simulations} simulation(s) à {n_episodes_total} episodes, and max {max_steps} steps per episode.")
+for sim in tqdm(range(n_simulations)):
     env = VillageWorld(worlds_saved[sim], rng)
-    final_value, reward_sums_epi, state_mat, action_mat, steps_to_reward, tm_final, model_r, value_epi, tm_epi, reward_sums_steps  = agent_function(params, 
-                                                                                                                                                    env, 
-                                                                                                                                                    worlds_saved[sim], 
-                                                                                                                                                    rewards_shuffled[sim], 
-                                                                                                                                                    max_steps, 
-                                                                                                                                                    n_episodes_total, 
-                                                                                                                                                    n_teach_episodes,
-                                                                                                                                                    rng, 
-                                                                                                                                                    optimization = False,
-                                                                                                                                                    world_model = world_model,
-                                                                                                                                                    learner_function = learner_function,
-                                                                                                                                                    n_learner = n_learner,
-                                                                                                                                                    objective = objective)
+    final_value, reward_sums_epi, state_mat, action_mat, steps_to_reward, tm_final, model_r, value_epi, tm_epi, reward_sums_steps, teacher_predictions  = agent_function(params, 
+                                                                                                                                                          env, 
+                                                                                                                                                          worlds_saved[sim], 
+                                                                                                                                                          rewards_shuffled[sim], 
+                                                                                                                                                          max_steps, 
+                                                                                                                                                          n_episodes_total, 
+                                                                                                                                                          n_teach_episodes,
+                                                                                                                                                          rng, 
+                                                                                                                                                          optimization = False,
+                                                                                                                                                          exp = exp,
+                                                                                                                                                          learner_function = learner_function,
+                                                                                                                                                          learner_params = learner_params,
+                                                                                                                                                          n_learner = n_learner,
+                                                                                                                                                          objective = objective)
     
     rewards_result_epi_saved[sim] = reward_sums_epi
     steps_saved[sim,:] = steps_to_reward
@@ -107,8 +112,8 @@ for sim in tqdm.tqdm(range(n_simulations)):
 
 ## PLOT PERFORMANCE ##
 title = f"MB pedagogical expert {n_simulations} sim"
-fig1, ax1 = plot_performance(rewards_result_epi_saved, "Episodes", title , "Performance", None)
-fig2, ax2 = plot_performance(steps_saved, "Episodes", title, "Steps to reward", None)
+fig1, ax1 = plot_performance(rewards_result_epi_saved, "Episodes", title , "Performance", n_train_episodes)
+fig2, ax2 = plot_performance(steps_saved, "Episodes", title, "Steps to reward", n_train_episodes)
 
 ## SAVE DATA ##
 data = {"sum_rewards": rewards_result_epi_saved.tolist(), 
@@ -121,23 +126,23 @@ data = {"sum_rewards": rewards_result_epi_saved.tolist(),
 
 if save:
     # Create directory if it doesn't exist
-    saving_path = f'saved/{world_model}'
+    saving_path = f'saved/{exp}'
     os.makedirs(saving_path, exist_ok=True)
     os.makedirs(f'{saving_path}/tmss', exist_ok=True)
 
-    with open(f'saved/{world_model}/mbased_pedagogical_expert_{world_model}.json', 'w') as json_file:
+    with open(f'saved/{exp}/mbased_pedagogical_expert_{exp}.json', 'w') as json_file:
         json.dump(data, json_file, indent=4)
 
-    np.savez_compressed(f'saved/{world_model}/tmss/mbased_pedagogical_expert_tm.npz', *tm_saved)
-    np.savez_compressed(f'saved/{world_model}/mbased_pedagogical_expert_value_epi.npz', *value_epi_saved)
-    np.savez_compressed(f'saved/{world_model}/tmss/mbased_pedagogical_expert_tm_epi.npz', *tm_epi_saved)
+    np.savez_compressed(f'saved/{exp}/tmss/mbased_pedagogical_expert_tm.npz', *tm_saved)
+    np.savez_compressed(f'saved/{exp}/mbased_pedagogical_expert_value_epi.npz', *value_epi_saved)
+    np.savez_compressed(f'saved/{exp}/tmss/mbased_pedagogical_expert_tm_epi.npz', *tm_epi_saved)
     print(f"MB pedagogical expert data saved")
 
     # Save figures
-    folder_path = os.path.join('saved', 'figures', str(world_model))
+    folder_path = os.path.join('saved', 'figures', str(exp))
     # Create the folder if it doesn't exist
     os.makedirs(folder_path, exist_ok=True)
 
-    fig1.savefig(os.path.join(folder_path, f'mb_pedagogical_expert_{world_model}_performance.png'), bbox_inches='tight')
-    fig2.savefig(os.path.join(folder_path, f'mb_pedagogical_expert_{world_model}_steps.png'), bbox_inches='tight')
+    fig1.savefig(os.path.join(folder_path, f'mb_pedagogical_expert_{exp}_performance.png'), bbox_inches='tight')
+    fig2.savefig(os.path.join(folder_path, f'mb_pedagogical_expert_{exp}_steps.png'), bbox_inches='tight')
     print(f"Figures saved for MB pedagogical expert")

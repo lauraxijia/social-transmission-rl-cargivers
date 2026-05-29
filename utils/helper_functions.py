@@ -452,4 +452,3 @@ def _obj_action_gap(predictions_at_t, learner_candidates, teacher_Q, **_):
         scores[a_T] = float(np.mean(gaps))
     return int(max(scores, key=scores.get))
 
-    return pi_social

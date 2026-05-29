@@ -5,10 +5,10 @@ from utils.helper_functions import softmax_policy, q_learning, dynaq_planner, fi
 
 """Policy of model-based pedagogical expert."""
 
-def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episodes_total, n_teach_episodes, rng, optimization = False, world_model='baseline', learner_function = None, learner_params = None, n_learner = None, *, objective):
+def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episodes_total, n_teach_episodes, rng, optimization = False, exp='baseline', learner_function = None, learner_params = None, n_learner = None, *, objective):
 
     # Assert that exp is either 'baseline' or 'exp2' or 'exp3'
-    assert world_model in ['baseline', 'exp2', 'exp3'], "exp must be 'baseline', 'exp2', or 'exp3'"
+    assert exp in ['baseline', 'exp2', 'exp3'], "exp must be 'baseline', 'exp2', or 'exp3'"
 
     ## Initializations ##
     # Start with a uniform value function
@@ -58,7 +58,7 @@ def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episode
             training_split=1.0,  # always "training" during teaching
             max_steps=max_steps,
             optimization=False,
-            world_model=world_model
+            exp=exp
         )
         for i in range(n_learner)
     }
@@ -90,6 +90,7 @@ def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episode
 
         # Initialize start positions for learner candidates
         if episode >= train_episodes:
+            teach_episode = 0
             for learner in learner_candidates.values():
                 learner.learning_mode = learner.TRAINING
                 learner.initialize_start_position()
@@ -136,22 +137,19 @@ def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episode
 
             # --- Teaching ---
             else:
-                for action in range(env.n_actions):
+                for a_T in range(env.n_actions):
                     for learner_id, learner in learner_candidates.items():
                         # Simulate learner's behavior 
-                        Q_sim, learner_action_sim = learner.simulate_single_step(reward_placed, expert_state = state, expert_action = action)
-                        teacher_predictions[episode][t][action][learner_id] = {
+                        Q_sim, learner_action_sim = learner.simulate_single_step(reward_placed, expert_state = state, expert_action = a_T)
+                        teacher_predictions[teach_episode][t][a_T][learner_id] = {
                             'Q': Q_sim,
                             'action': learner_action_sim
                         }
-                
-                # Compute objective (e.g., average difference between value of selected action of learner and expert's optimal action) and select action that maximizes the objective (move as separate function to helper_functions.py)
-                # If we use the average difference between value of selected action of learner and expert's optimal action, we need the optimal action of the expert, which could either be sampled from the softmax or be argmax_a of the learner's state.
-                # But note that different learner candidates might be in different states!
-                best_action = None
-                action_show = teaching_objective(
+            
+                # Choose the next action to demonstrate based on the teaching objective
+                action = teaching_objective(
                     method=objective,
-                    predictions_at_t=teacher_predictions[episode][t],
+                    predictions_at_t=teacher_predictions[teach_episode][t],
                     learner_candidates=learner_candidates,
                     teacher_Q=value,
                     env=env,
@@ -164,19 +162,21 @@ def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episode
 
                 # Update the learners based on the observed expert action
                 for learner in learner_candidates.values():
-                    learner.perform_single_step(reward_placed, expert_state = state, expert_action = action_show)
+                    learner.perform_single_step(reward_placed, expert_state = state, expert_action = action)
 
                 # Calculate new location based on the action
-                next_agent_location, next_state = env.move_agent(action_show, state, agent_location, reward_placed)
+                next_agent_location, next_state = env.move_agent(action, state, agent_location, reward_placed)
 
                 # Observe reward for that action 
                 reward = find_reward(state, reward_placed)  
                 reward_per_step[episode, t] = reward 
                 reward_sums_epi[episode] += reward
 
+                teach_episode += 1
+
 
             # Store action
-            action_mat[episode,t] = action_show
+            action_mat[episode,t] = action
             
             # If positive reward is found, end episode
             if reward > 0:
