@@ -23,6 +23,7 @@ max_steps = 40
 n_actions = 4
 learner = "MF-VS"
 n_learner = 10
+objective = "q_mismatch"  # "q_mismatch" | "action_gap" | "cumulative_reward"
 
 # Set random seed for reproducibility
 seed = 5
@@ -90,7 +91,8 @@ for sim in tqdm.tqdm(range(n_simulations)):
                                                                                                                                                     optimization = False,
                                                                                                                                                     world_model = world_model,
                                                                                                                                                     learner_function = learner_function,
-                                                                                                                                                    n_learner = n_learner)
+                                                                                                                                                    n_learner = n_learner,
+                                                                                                                                                    objective = objective)
     
     rewards_result_epi_saved[sim] = reward_sums_epi
     steps_saved[sim,:] = steps_to_reward
