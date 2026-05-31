@@ -23,7 +23,7 @@ max_steps = 40
 n_actions = 4
 learner = "MF-VS"
 n_learner = 10
-objective = "q_mismatch"  # "q_mismatch" | "action_gap" | "cumulative_reward"
+objective = "action_gap"  # "q_mismatch" | "action_gap" | "cumulative_reward"
 
 # Set random seed for reproducibility
 seed = 5
@@ -111,7 +111,7 @@ for sim in tqdm(range(n_simulations)):
 
 
 ## PLOT PERFORMANCE ##
-title = f"MB pedagogical expert {n_simulations} sim"
+title = f"MB pedagogical expert, obj: {objective} ({n_simulations} sim)"
 fig1, ax1 = plot_performance(rewards_result_epi_saved, "Episodes", title , "Performance", n_train_episodes)
 fig2, ax2 = plot_performance(steps_saved, "Episodes", title, "Steps to reward", n_train_episodes)
 
@@ -130,19 +130,19 @@ if save:
     os.makedirs(saving_path, exist_ok=True)
     os.makedirs(f'{saving_path}/tmss', exist_ok=True)
 
-    with open(f'saved/{exp}/mbased_pedagogical_expert_{exp}.json', 'w') as json_file:
+    with open(f'saved/{exp}/mbased_pedagogical_expert_{objective}_{exp}.json', 'w') as json_file:
         json.dump(data, json_file, indent=4)
 
-    np.savez_compressed(f'saved/{exp}/tmss/mbased_pedagogical_expert_tm.npz', *tm_saved)
-    np.savez_compressed(f'saved/{exp}/mbased_pedagogical_expert_value_epi.npz', *value_epi_saved)
-    np.savez_compressed(f'saved/{exp}/tmss/mbased_pedagogical_expert_tm_epi.npz', *tm_epi_saved)
-    print(f"MB pedagogical expert data saved")
+    np.savez_compressed(f'saved/{exp}/tmss/mbased_pedagogical_expert_{objective}_tm.npz', *tm_saved)
+    np.savez_compressed(f'saved/{exp}/mbased_pedagogical_expert_{objective}_value_epi.npz', *value_epi_saved)
+    np.savez_compressed(f'saved/{exp}/tmss/mbased_pedagogical_expert_{objective}_tm_epi.npz', *tm_epi_saved)
+    print(f"MB pedagogical expert {objective} data saved.")
 
     # Save figures
     folder_path = os.path.join('saved', 'figures', str(exp))
     # Create the folder if it doesn't exist
     os.makedirs(folder_path, exist_ok=True)
 
-    fig1.savefig(os.path.join(folder_path, f'mb_pedagogical_expert_{exp}_performance.png'), bbox_inches='tight')
-    fig2.savefig(os.path.join(folder_path, f'mb_pedagogical_expert_{exp}_steps.png'), bbox_inches='tight')
-    print(f"Figures saved for MB pedagogical expert")
+    fig1.savefig(os.path.join(folder_path, f'mb_pedagogical_expert_{objective}_{exp}_performance.png'), bbox_inches='tight')
+    fig2.savefig(os.path.join(folder_path, f'mb_pedagogical_expert_{objective}_{exp}_steps.png'), bbox_inches='tight')
+    print(f"Figures saved for MB pedagogical expert {objective}.")

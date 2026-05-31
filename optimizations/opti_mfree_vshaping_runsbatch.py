@@ -1,11 +1,10 @@
 import os
 import numpy as np
 import json
-import time
 from scipy.optimize import differential_evolution
 
-from utils.social_functions import social_sim_mf
-from models.mf_valueshaping_old import mf_valueshaping
+from models.mf_valueshaping import MFValueShapingAgent
+from utils.helper_functions import run_simulations, aggregate_results
 
 """Optimization of the model-free social agent with value shaping using differential evolution."""
 
@@ -14,8 +13,9 @@ n_episodes = 20
 n_simulations = 1000 # 1000
 max_steps = 40 #40
 n_calls = 15
-training = 0.5
+training_split = 0.5
 popsize = 5
+objective = "action_gap"  # "q_mismatch" | "action_gap" | "cumulative_reward"
 
 seed = 5
 rng = np.random.default_rng(seed)
@@ -37,7 +37,7 @@ with open('saved/opti_results/mfree_agent.json', 'r') as json_file:
     mb_agent_params = json.load(json_file)["opti_params"]
     alpha = mb_agent_params["alpha"]
 # Load data from the expert
-with open('saved/baseline/mbased_expert_baseline.json', 'r') as json_file:
+with open(f'saved/baseline/mbased_pedagogical_expert_{objective}_baseline.json', 'r') as json_file:
     expert_data= json.load(json_file)
 # Convert the saved lists to array
 for k in expert_data.keys():
@@ -45,14 +45,14 @@ for k in expert_data.keys():
 
 # Load the worlds 
 loaded = np.load('saved/worlds.npz')
-worlds_saved = [loaded[f'arr_{i}'] for i in range(len(loaded.files))]
+worlds = [loaded[f'arr_{i}'] for i in range(len(loaded.files))]
 
 rewards_load = np.load('saved/rewards_info.npz')
-rewards_shuffled = [rewards_load[f'arr_{i}'] for i in range(len(rewards_load.files))]
+rewards = [rewards_load[f'arr_{i}'] for i in range(len(rewards_load.files))]
 
 
 ## OPTIMIZATION ##
-def objective_function(unbounded_params, mf_valueshaping, expert_data,  worlds_saved, rewards_shuffled, n_simulations, max_steps, n_episodes, training, rng):
+def objective_function(unbounded_params, AgentClass, expert_data,  worlds, rewards, n_simulations, max_steps, n_episodes, training_split, rng):
 
     # Bound parameters
     # Apply inverse transformations for continuous parameters
@@ -67,12 +67,29 @@ def objective_function(unbounded_params, mf_valueshaping, expert_data,  worlds_s
   
 
         
-    rewards_result = social_sim_mf(mf_valueshaping, expert_data, worlds_saved, rewards_shuffled, n_simulations, max_steps, n_episodes, params, training, rng, optimization = True, world_model = 'baseline', rewards_exp2=None)
+    rewards_result = run_simulations(
+        AgentClass,
+        params,
+        expert_data, 
+        rng,
+        exp = "baseline",
+        worlds = worlds, 
+        rewards = rewards, 
+        rewards_exp2 = None,
+        n_simulations = n_simulations, 
+        n_episodes = n_episodes, 
+        max_steps = max_steps,
+        training_split = training_split, 
+        optimization = True
+        )
+    
 
-    return -np.mean(rewards_result[:, :int(n_episodes*training)]) # mean of  
+    rewards_result = np.stack(rewards_result)
+
+    return -np.mean(rewards_result[:, :int(n_episodes*training_split)])  
 
 
-result = differential_evolution(objective_function, param_search_space, args=(mf_valueshaping, expert_data, worlds_saved, rewards_shuffled, n_simulations, max_steps, n_episodes, training, rng), maxiter=n_calls, popsize=popsize, disp=True)  
+result = differential_evolution(objective_function, param_search_space, args=(MFValueShapingAgent, expert_data, worlds, rewards, n_simulations, max_steps, n_episodes, training_split, rng), maxiter=n_calls, popsize=popsize, disp=True)  
 
 
 print("result.x, result.fun", result.x, result.fun)
@@ -95,5 +112,5 @@ opti_params = {"beta": inverse_temp,
 # If folder does not exist, create it
 if not os.path.exists('saved/opti_results'):
     os.makedirs('saved/opti_results')
-with open('saved/opti_results/mfree_vshaping.json', 'w') as json_file:
+with open(f'saved/opti_results/mfree_vshaping_{objective}.json', 'w') as json_file:
     json.dump({'opti_params': opti_params, 'fun': result.fun}, json_file)
