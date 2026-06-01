@@ -39,7 +39,8 @@ class MFValueShapingAgent:
         self.rewards_exp2 = rewards_exp2[-self.n_episodes:, :, :2] if rewards_exp2 is not None else None
 
         # Expert states and actions
-        self.expert_states, self.expert_actions = expert_states[-self.n_episodes:,:], expert_actions[-self.n_episodes:,:]
+        self.expert_states  = expert_states[-self.n_episodes:,:]
+        self.expert_actions = expert_actions[-self.n_episodes:,:]
 
         # Representations
         self.Q = np.ones((env.n_states, env.n_actions))

@@ -11,11 +11,11 @@ from utils.world import VillageWorld
 """Simulation of model-based pedagogical expert."""
 
 # Simulation parameters
-save = True
+save = False
 optimization = False
 exp = "baseline" # "baseline" "exp2" "exp3"
 n_states = 100
-n_simulations = 1000 # 1000
+n_simulations = 1 # 1000
 n_train_episodes = 100
 n_teach_episodes = 20
 n_episodes_total = n_train_episodes + n_teach_episodes 

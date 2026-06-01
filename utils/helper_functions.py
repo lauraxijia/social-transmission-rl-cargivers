@@ -64,7 +64,7 @@ def aggregate_results(results):
     }
     return data
 
-def save_results(results, exp, agent):
+def save_results(results, exp, agent, expert_string):
     """Save the results of the simulations to a json file."""
     # Create directory if it doesn't exist
     folder = f'saved/{exp}'
@@ -73,11 +73,11 @@ def save_results(results, exp, agent):
     json_safe = {k: v.tolist() if isinstance(v, np.ndarray) else v for k, v in results.items() if k != "value_snapshots"}
 
     # Save data to json file
-    with open(os.path.join(folder, f'{agent}_{exp}.json'), 'w') as json_file:
+    with open(os.path.join(folder, f'{agent}_{expert_string}_{exp}.json'), 'w') as json_file:
         json.dump(json_safe, json_file, indent=4)
     
     # Save value snapshots to npz file
-    np.savez_compressed(f'{folder}/{agent}_{exp}_values_epi.npz', *results["value_snapshots"])
+    np.savez_compressed(f'{folder}/{agent}_{expert_string}_{exp}_values_epi.npz', *results["value_snapshots"])
 
     print(f"Results saved to {folder}.")
 

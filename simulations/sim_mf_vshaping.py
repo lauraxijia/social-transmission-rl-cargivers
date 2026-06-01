@@ -11,14 +11,19 @@ from utils.plot_functions import plot_performance
 AgentClass = MFValueShapingAgent
 
 # --- Set simulation parameters --- #
-save = True
+save = False
 n_episodes = 20
-exp = "baseline" # "baseline" "exp3" "exp2"
+exp = "baseline" # "baseline" | "exp3" | "exp2"
 training_split = 0.5
 n_states = 100
-n_simulations = 1000 #1000
+n_simulations = 1 #1000
 max_steps = 40
 n_actions = 4
+expert_type = "mbased_pedagogical_expert" # "mbased_pedagogical_expert" | "mbased_expert" 
+teaching_objective = "action_gap"  # "q_mismatch" | "action_gap" | "cumulative_reward"
+
+learner_string = "mfree_vshaping"
+expert_string = f"{expert_type}_{teaching_objective}" if expert_type == "mbased_pedagogical_expert" else expert_type
 
 # Set seed for reproducibility
 seed = 5
@@ -31,10 +36,11 @@ with open(f'saved/opti_results/mfree_vshaping.json', 'r') as json_file:
 print("Params agent MF-VS: \n ", params)
 
 # Load data from the expert
-with open('saved/baseline/mbased_expert_baseline.json', 'r') as json_file:
+with open(f'saved/baseline/{expert_string}_baseline.json', 'r') as json_file:
     expert_data = json.load(json_file)
 for k in expert_data.keys():
     expert_data[k] = np.array(expert_data[k])
+
 
 # Load worlds
 loaded = np.load('saved/worlds.npz')
@@ -53,7 +59,7 @@ else:
 
 
 # --- Run simulation --- #
-print(f"Run exp {exp} with MF Value Shaping agent for {n_simulations} simulation(s) à {n_episodes} episodes, and max {max_steps} steps per episode.")
+print(f"Run exp {exp} with MF Value Shaping agent for {n_simulations} simulation(s) à {n_episodes} episodes, and max {max_steps} steps per episode with {expert_string}.")
 results = run_simulations(
     AgentClass,
     params,
@@ -79,6 +85,6 @@ fig2, ax2 = plot_performance(results["steps_to_reward"], "Episodes", f"MF Value 
 
 # --- Save results --- #
 if save:
-    save_results(results, exp, agent='mfree_vshaping')
-    fig1.savefig(f'saved/figures/{exp}/mfree_vshaping_{exp}_performance.png')
-    fig2.savefig(f'saved/figures/{exp}/mfree_vshaping_{exp}_steps_to_reward.png')
+    save_results(results, exp, learner_string, expert_string)
+    fig1.savefig(f'saved/figures/{exp}/{learner_string}_{expert_string}_{exp}_performance.png')
+    fig2.savefig(f'saved/figures/{exp}/{learner_string}_{expert_string}_{exp}_steps_to_reward.png')

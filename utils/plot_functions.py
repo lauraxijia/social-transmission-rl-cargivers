@@ -173,8 +173,8 @@ def plot_world(env, world, reward_info, state_num = None, boundaries = None, rew
             )
 
     # Add thicker lines for the tiles
-    ax.plot([0, 10], [5,5], 'gray', linewidth=3 )
-    ax.plot([5, 5], [0,10], 'gray', linewidth=3 )
+    ax.plot([0, 10], [5,5], 'gray', linewidth=1 )
+    ax.plot([5, 5], [0,10], 'gray', linewidth=1 )
     # Add thicker lines for the edges
     ax.plot([0,10], [0,0], color='gray', linewidth=3)
     ax.plot([0,10], [10,10], color='gray', linewidth=3)
