@@ -265,11 +265,12 @@ class VillageWorld():
         else:
             possible_initial_loc = [(4,4), (5,4), (4,5), (5,5)]
         # Return random initial location 
-        in_index = self.rng.integers(0, 4)
+        n_start_locations = len(possible_initial_loc)
+        in_index = self.rng.integers(0, n_start_locations)
         agent_location = possible_initial_loc[in_index]
         # Make sure that the start location is not a reward state
         while self.world_matrix[agent_location] in self.reward_states:
-            in_index = self.rng.integers(0, 4)
+            in_index = self.rng.integers(0, n_start_locations)
             agent_location = possible_initial_loc[in_index]
     
         return agent_location
