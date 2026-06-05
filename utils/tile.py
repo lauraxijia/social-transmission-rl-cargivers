@@ -2,10 +2,10 @@ import numpy as np
 
 
 class Tile():
-    """Class for the tile in the village world. Each tile is a 4x4 grid of states with a reward state and boundaries."""
+    """Class for the tile in the village world. Each tile is a 5x5 grid of states with a reward state and boundaries."""
     
     # Attributes
-    def __init__(self,xdim, ydim, start_state, end_state, reward_state, boundaries, rotation):
+    def __init__(self,xdim, ydim, start_state, end_state, reward_states, hazard_states, boundaries, rotation):
         # Initialize a 5x5 grid of states. 
         # Each state can be represented as a tuple, a number, or any data structure that suits your need
         # self.states = [[0 for _ in range(4)] for _ in range(4)]
@@ -19,7 +19,8 @@ class Tile():
         #self.v_boundaries = v_boundaries
         #self.h_boundaries = h_boundaries
         self.boundaries = boundaries  # Initialize a set to store impassable boundaries
-        self.reward_state = reward_state
+        self.reward_states = reward_states
+        self.hazard_states = hazard_states
 
     
     def states_rotate(self): # Called from world.py

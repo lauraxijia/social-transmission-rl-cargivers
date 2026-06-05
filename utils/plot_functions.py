@@ -12,16 +12,16 @@ from matplotlib.font_manager import FontProperties
 
 def state_to_xy(world_matrix, state):
     """
-    Converts a state number to (x, y) coordinates in an 8x8 grid.
+    Converts a state number to (x, y) coordinates in a grid.
     
     Args:
     - state: The state number.
-    - grid_width: The width of the grid (should be 8 for an 8x8 grid).
     
     Returns:
     Tuple of (x, y) coordinates.
     """
-    return np.where(world_matrix == state)
+    row, col = np.argwhere(world_matrix == state)[0]
+    return row, col
 
 
 def add_boundaries(ax, world, boundaries, grid_size):
@@ -82,7 +82,7 @@ def draw_arrow(ax, start_center, end_center, color):
                 arrowprops=dict(arrowstyle="->", connectionstyle="arc3", color=color))
 
 
-def plot_world(env, world, reward_info, state_num = None, boundaries = None, reward_text = False, reward_color = False, dashed_squares = None, transition_matrix = None, exp = 'baseline', savefigpath = False, ax = None):
+def plot_world(env, world, reward_info, state_num = None, boundaries = None, reward_text = False, reward_color = False, dashed_squares = None, hazard_states = None, hazard_penalty = None, transition_matrix = None, exp = 'baseline', savefigpath = False, ax = None):
     """
     Plots the world grid with optional attributes
     env: Environment object
@@ -109,9 +109,9 @@ def plot_world(env, world, reward_info, state_num = None, boundaries = None, rew
         #ax = plt.gca()  # Get the current axis if none is provided
     
     
-    # Create a blank 8x8 white grid
+    # Create a blank white grid
     ax.set_xlim([0, grid_size])
-    ax.set_ylim([0, grid_size])
+    ax.set_ylim([grid_size, 0])
     ax.set_aspect('equal')
 
     # Draw gridlines
@@ -127,7 +127,7 @@ def plot_world(env, world, reward_info, state_num = None, boundaries = None, rew
         for state in range(env.n_states):
             # columns & rows
             y, x = state_to_xy(world, state)
-            ax.text(x + 0.5, grid_size - y - 0.5, str(state), va='center', ha='center', color="black")
+            ax.text(x + 0.5, y + 0.5, str(state), va='center', ha='center', color="black")
 
     # Coloring specific states
     if reward_color:
@@ -151,12 +151,19 @@ def plot_world(env, world, reward_info, state_num = None, boundaries = None, rew
                 color = "#ffffffff"
                 alpha = 0.7
 
-            ax.add_patch(plt.Rectangle((x, grid_size - y - 1), 1, 1, color=color, alpha=alpha))
+            ax.add_patch(plt.Rectangle((x, y), 1, 1, color=color, alpha=alpha))
             # Add color to reward state 87 for distribution 4
-            ax.add_patch(plt.Rectangle((x, grid_size - y - 1), 1, 1, color=color, alpha=alpha))
+            ax.add_patch(plt.Rectangle((x, y), 1, 1, color=color, alpha=alpha))
             if reward_text:
-                ax.text(x + 0.5, grid_size - y - 0.5, str(reward_value), va='center', ha='center', color="black")
-    
+                ax.text(x + 0.5, y + 0.5, str(reward_value), va='center', ha='center', color="black")
+
+    if hazard_states is not None and hazard_penalty is not None:
+        for state in hazard_states:
+            y, x = state_to_xy(world, state)
+            ax.add_patch(plt.Rectangle((x, y), 1, 1, color="#292828ff", alpha=0.7))
+            if reward_text:
+                ax.text(x + 0.5, y + 0.5, str(hazard_penalty), va='center', ha='center', color="white")
+
     # Add boundaries
     if boundaries:
         add_boundaries(ax, world, boundaries, grid_size)
@@ -168,7 +175,7 @@ def plot_world(env, world, reward_info, state_num = None, boundaries = None, rew
             y, x = state_to_xy(world, square)  
             ax.plot(
                 [x, x+1, x+1, x, x],  # x-coordinates of the square boundary
-                [grid_size - y - 1, grid_size - y - 1, grid_size - y, grid_size - y, grid_size - y - 1],  # y-coordinates
+                [y, y, y+1, y+1, y],  # y-coordinates
                 linestyle='--', color='#D46A6A', linewidth=2
             )
 
@@ -183,24 +190,25 @@ def plot_world(env, world, reward_info, state_num = None, boundaries = None, rew
 
 
     # Add patch to the initial states
-    if exp == 'baseline':
-        ax.add_patch(plt.Rectangle((5, 5), 1, 1, color="#99d8c9"))
-        ax.add_patch(plt.Rectangle((5, 4), 1, 1, color="#99d8c9"))
-        ax.add_patch(plt.Rectangle((4, 5), 1, 1, color="#99d8c9"))
-        ax.add_patch(plt.Rectangle((4, 4), 1, 1, color="#99d8c9"))
-    elif exp == 'exp3':
-        ax.add_patch(plt.Rectangle((3, 3), 1, 1, color="#99d8c9"))
-        ax.add_patch(plt.Rectangle((4, 3), 1, 1, color="#99d8c9"))
-        ax.add_patch(plt.Rectangle((5, 3), 1, 1, color="#99d8c9"))
-        ax.add_patch(plt.Rectangle((6, 3), 1, 1, color="#99d8c9")) 
-        ax.add_patch(plt.Rectangle((6, 4), 1, 1, color="#99d8c9"))
-        ax.add_patch(plt.Rectangle((6, 5), 1, 1, color="#99d8c9"))
-        ax.add_patch(plt.Rectangle((6, 6), 1, 1, color="#99d8c9")) 
-        ax.add_patch(plt.Rectangle((5, 6), 1, 1, color="#99d8c9"))
-        ax.add_patch(plt.Rectangle((4, 6), 1, 1, color="#99d8c9"))
-        ax.add_patch(plt.Rectangle((3, 6), 1, 1, color="#99d8c9")) 
-        ax.add_patch(plt.Rectangle((3, 5), 1, 1, color="#99d8c9"))
-        ax.add_patch(plt.Rectangle((3, 4), 1, 1, color="#99d8c9"))
+    ax.add_patch(plt.Rectangle((4, 4), 1, 1, color="#99d8c9"))
+    #if exp == 'baseline':
+    #    ax.add_patch(plt.Rectangle((4, 4), 1, 1, color="#99d8c9"))
+    #    ax.add_patch(plt.Rectangle((5, 5), 1, 1, color="#99d8c9"))
+    #    ax.add_patch(plt.Rectangle((5, 4), 1, 1, color="#99d8c9"))
+    #    ax.add_patch(plt.Rectangle((4, 5), 1, 1, color="#99d8c9"))
+    #elif exp == 'exp3':
+    #    ax.add_patch(plt.Rectangle((3, 3), 1, 1, color="#99d8c9"))
+    #    ax.add_patch(plt.Rectangle((4, 3), 1, 1, color="#99d8c9"))
+    #    ax.add_patch(plt.Rectangle((5, 3), 1, 1, color="#99d8c9"))
+    #    ax.add_patch(plt.Rectangle((6, 3), 1, 1, color="#99d8c9")) 
+    #    ax.add_patch(plt.Rectangle((6, 4), 1, 1, color="#99d8c9"))
+    #    ax.add_patch(plt.Rectangle((6, 5), 1, 1, color="#99d8c9"))
+    #    ax.add_patch(plt.Rectangle((6, 6), 1, 1, color="#99d8c9")) 
+    #    ax.add_patch(plt.Rectangle((5, 6), 1, 1, color="#99d8c9"))
+    #    ax.add_patch(plt.Rectangle((4, 6), 1, 1, color="#99d8c9"))
+    #    ax.add_patch(plt.Rectangle((3, 6), 1, 1, color="#99d8c9")) 
+    #    ax.add_patch(plt.Rectangle((3, 5), 1, 1, color="#99d8c9"))
+    #    ax.add_patch(plt.Rectangle((3, 4), 1, 1, color="#99d8c9"))
 
     # Add transition matrix arrows if provided
     # Draw the arrows for the transitions
@@ -212,7 +220,7 @@ def plot_world(env, world, reward_info, state_num = None, boundaries = None, rew
             for state in range(env.n_states):
                 # columns & rows
                 y, x = state_to_xy(world, state)
-                start_center = (x + 0.5, grid_size - y - 0.5)  # Adjusting origin to bottom left
+                start_center = (x + 0.5,  y + 0.5)  # Adjusting origin to bottom left
 
                 for end_state in range(env.n_states):
                     if transition_matrix[state, action_index, end_state] > 0:
@@ -222,7 +230,7 @@ def plot_world(env, world, reward_info, state_num = None, boundaries = None, rew
                             end_center = get_end_center(d, end, grid_size)
                             draw_arrow(ax, start_center, end_center, "red")
                         else: 
-                            end_center = (end[1] + 0.5, grid_size - end[0] - 0.5)
+                            end_center = (end[1] + 0.5, end[0] + 0.5)
                             draw_arrow(ax, start_center, end_center, color)
 
     if savefigpath:

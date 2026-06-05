@@ -3,6 +3,7 @@ import os
 import numpy as np
 from tqdm import tqdm
 from .world import VillageWorld
+from .dummy_world import DummyWorld
 from scipy.special import softmax
 import json
 from numba import njit
@@ -29,7 +30,8 @@ def run_simulations(
     results = []
 
     for sim in tqdm(range(n_simulations), disable=optimization):
-        env = VillageWorld(worlds[sim], rng)
+        #env = VillageWorld(worlds[sim], rng)
+        env = DummyWorld(worlds[sim], rng)
 
         agent = AgentClass(
             rng=rng,
@@ -103,19 +105,27 @@ def softmax_policy(value, state, n_actions, beta, rng):
  
  
 #@njit
-def find_reward(state, reward_placed):
+def find_reward(state, env, reward_placed):
     """
     Find the reward value of the current state
     If it is not a reward state with reward > 0, return -1
 
     reward states are defined from reward_placed
     """
+    
+    reward = 0
 
+    # Check for positive rewards
     if (state in reward_placed[:, 0]) and (reward_placed[reward_placed[:,0] == state, 1][0] > 0):
         reward = reward_placed[:,1][np.where(reward_placed[:,0] == state)[0]][0]
-        
-    else:
-        reward = -1
+        return reward
+    
+    # Check for hazards
+    elif state in env.hazard_states:
+        reward += env.hazard_penalty
+
+    # Moving cost
+    reward += -1
     
     return reward
 

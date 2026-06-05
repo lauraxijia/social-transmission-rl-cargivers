@@ -64,6 +64,7 @@ def mb_expert(params, env, world, rewards_info, max_steps, n_episodes, training,
         # Training phase or expert
         else:
             agent_location = env.initial_loc(exp = "baseline")
+        print(f"Episode {episode} - Starting at location {agent_location} in world model {world_model} with reward placements {reward_placed}")
 
         ## Initial state - needed for the value function
         state = world[agent_location]
@@ -82,7 +83,7 @@ def mb_expert(params, env, world, rewards_info, max_steps, n_episodes, training,
             next_agent_location, next_state = env.move_agent(action, state, agent_location, reward_placed)
 
             # Observe reward for that action 
-            reward = find_reward(state, reward_placed)  
+            reward = find_reward(state, env, reward_placed)  
             # Update rewards based in agent location
             reward_per_step[episode, t] = reward 
             reward_sums_epi[episode] += reward

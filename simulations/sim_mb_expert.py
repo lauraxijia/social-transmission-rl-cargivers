@@ -3,6 +3,7 @@ import json
 from tqdm import tqdm
 import os
 
+from utils.dummy_world import DummyWorld
 from utils.world import VillageWorld
 from models.mb_expert import mb_expert
 from utils.plot_functions import plot_performance
@@ -11,13 +12,13 @@ from utils.plot_functions import plot_performance
 """Simulation of the model-based expert and agent."""
 
 # Simulation parameters
-save = True
+save = False
 agent = "agent"  # "expert" or "agent"
 optimization = False
-world_model = "exp3" # "baseline" "exp2" "exp3"
+world_model = "baseline" # "baseline" "exp2" "exp3"
 training = 0.5 
-n_states = 100
-n_simulations = 1000 # 1000
+n_states = 25
+n_simulations = 1 # 1000
 n_episodes = 20 # 120 for expert, 20 for agent
 max_steps = 40
 n_actions = 4
@@ -40,10 +41,12 @@ else:
     print(params)
 
 # Load worlds and rewards
-loaded = np.load('saved/worlds.npz') 
+#loaded = np.load('saved/worlds.npz') 
+loaded = np.load(f'saved/dummy_worlds.npz')
 worlds_saved = [loaded[f'arr_{i}'] for i in range(len(loaded.files))] 
 
-rewards_load = np.load('saved/rewards_info.npz')
+#rewards_load = np.load('saved/rewards_info.npz')
+rewards_load = np.load(f'saved/dummy_rewards_fixed.npz')
 rewards_shuffled = [rewards_load[f'arr_{i}'] for i in range(len(rewards_load.files))]
 
 if world_model == "exp2":
@@ -82,7 +85,8 @@ agent_function = mb_expert
 print(f"MB {agent} simulations with {world_model} world model")
 for sim in tqdm(range(n_simulations)):
 
-    env = VillageWorld(worlds_saved[sim], rng)
+    #env = VillageWorld(worlds_saved[sim], rng)
+    env = DummyWorld(worlds_saved[sim], rng)
     if optimization:
         reward_sums_epi = agent_function(params, 
                                     env, 

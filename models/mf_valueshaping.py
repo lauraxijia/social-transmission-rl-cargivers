@@ -85,6 +85,7 @@ class MFValueShapingAgent:
         exp = "baseline" if self.learning_mode == self.TRAINING else self.exp
         self.current_location = self.env.initial_loc(exp=exp)
         self.current_state = self.world[self.current_location]
+        print(f"Episode {self.current_episode} - Starting at location {self.current_location} (state {self.current_state}) in mode {self.learning_mode}")
 
     def found_reward(self, reward):
         """Helper function to check if a reward was found."""
@@ -118,7 +119,7 @@ class MFValueShapingAgent:
         next_agent_location, next_state = self.env.move_agent(action, self.current_state, self.current_location, reward_placed)
 
         # 4. Get reward 
-        reward = find_reward(self.current_state, reward_placed)
+        reward = find_reward(self.current_state, self.env, reward_placed)
         self.log['reward_per_step'][episode, step] = reward
         self.log['reward_sum_episode'][episode] += reward
 
@@ -153,7 +154,7 @@ class MFValueShapingAgent:
         _, next_state = self.env.move_agent(action, self.current_state, self.current_location, reward_placed)
 
         # 4. Get reward
-        reward = find_reward(self.current_state, reward_placed)
+        reward = find_reward(self.current_state, self.env, reward_placed)
 
         # 5. Q-learning update
         Q_sim = self.learn(Q_sim, self.current_state, action, reward, next_state)

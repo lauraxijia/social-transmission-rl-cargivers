@@ -7,6 +7,7 @@ from models.mb_pedagogical_expert import mb_pedagogical_expert
 from models.mf_valueshaping import MFValueShapingAgent
 from utils.plot_functions import plot_performance
 from utils.world import VillageWorld
+from utils.dummy_world import DummyWorld
 
 """Simulation of model-based pedagogical expert."""
 
@@ -41,10 +42,12 @@ with open(f'saved/opti_results/mbased_expert.json', 'r') as json_file:
 print(params)
 
 # Load worlds and rewards
-loaded = np.load('saved/worlds.npz')
+#loaded = np.load('saved/worlds.npz')
+loaded = np.load(f'saved/dummy_worlds.npz')
 worlds_saved = [loaded[f'arr_{i}'] for i in range(len(loaded.files))]
 
-rewards_load = np.load('saved/rewards_info.npz')
+#rewards_load = np.load('saved/rewards_info.npz')
+rewards_load = np.load(f'saved/dummy_rewards_fixed.npz')
 rewards_shuffled = [rewards_load[f'arr_{i}'] for i in range(len(rewards_load.files))]
 
 # Load learner class and params
@@ -83,7 +86,8 @@ agent_function = mb_pedagogical_expert
 ## SIMULATION LOOP ##
 print(f"Run exp {exp} with MB pedaogical expert for {n_simulations} simulation(s) à {n_episodes_total} episodes, and max {max_steps} steps per episode.")
 for sim in tqdm(range(n_simulations)):
-    env = VillageWorld(worlds_saved[sim], rng)
+    #env = VillageWorld(worlds_saved[sim], rng)
+    env = DummyWorld(worlds_saved[sim], rng)
     final_value, reward_sums_epi, state_mat, action_mat, steps_to_reward, tm_final, model_r, value_epi, tm_epi, reward_sums_steps, teacher_predictions  = agent_function(params, 
                                                                                                                                                           env, 
                                                                                                                                                           worlds_saved[sim], 

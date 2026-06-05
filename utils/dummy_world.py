@@ -1,9 +1,9 @@
 import numpy as np
 from .tile import Tile
 
-class VillageWorld():
+class DummyWorld():
     """
-    A class to represent the Village World environment.
+    A class to represent a dummy environment to test the pedagogical expert.
 
     Attributes:
         name (str): Name of the environment.
@@ -17,75 +17,35 @@ class VillageWorld():
     
     # Attributes
     def __init__(self, world = None, rng=None):
-       self.name = "VillageWorld"
-       self.n_states = 100
+       self.name = "DummyWorld"
+       self.n_states = 25
        self.n_actions = 4
-       self.n_tiles = 4
-       self.dim_x = 10
-       self.dim_y = 10
-       self.n_tiles = 4
+       self.n_tiles = 1
+       self.dim_x = 5
+       self.dim_y = 5
        self.rng = rng if rng is not None else np.random.default_rng()
 
        # Create four tiles with appropriate starting numbers
        xdim_tiles, ydim_tiles = 5, 5
        
-       # Reward states
-       self.reward_states = [16, 43, 57, 87]
+       # Reward 
+       self.reward_states = [0]
 
-       # Hazard states
-       self.hazard_states = []
+       # Hazards 
+       self.hazard_states = [7, 16] 
+       self.hazard_penalty = -5
 
-       # Assert that there are no reward states that are also hazard states
        assert not any(state in self.hazard_states for state in self.reward_states), "Reward states and hazard states cannot overlap."
 
-       # Define boundaries within each tile
-       boundary_tileA =[(9,14), (13,14), (13,18), (17,18), (17,22), (16,21), (15,16), (11,16), (11,12), (7,12), (8,7)]
-       boundary_tileB = [(35,36), (40,41), (41,46), (42,47), (43,48),(43,44), (38,43), (37,42), (36,37)]
-       boundary_tileC = [(67,68), (62,63), (57,62), (56,57), (52,57), (53,58), (58,59), (63,64), (68,69)] 
-       boundary_tileD = [(75,80), (80,81),(81,86), (86,87), (87,92), (92,93)]
+       # No boundaries in the dummy world
+       boundaries = []
 
-       # Define the rotation angles for later random choise
-       possible_rotation_angles = np.array([0,90,180,270])
-       rotation_angles = self.rng.choice(possible_rotation_angles, size=self.n_tiles, replace=True)
-       
-       # Initialize tiles with boundaries, rotation and reward states
-       self.tileA = Tile(xdim_tiles, ydim_tiles, 0, 25, 16, None, boundary_tileA, rotation_angles[0])
-       self.tileB = Tile(xdim_tiles, ydim_tiles, 25, 50, 43, None, boundary_tileB, rotation_angles[1])
-       self.tileC = Tile(xdim_tiles, ydim_tiles, 50, 75, 57, None, boundary_tileC, rotation_angles[2])
-       self.tileD = Tile(xdim_tiles, ydim_tiles, 75, 100, 87, None, boundary_tileD, rotation_angles[3])
-       
-       self.tiles = [self.tileA, self.tileB, self.tileC, self.tileD]
-       
-       self.world_matrix = self.get_world_matrix() if world is None else world
+       # Define the grid world as a single tile
+       self.tile = Tile(xdim_tiles, ydim_tiles, 0, 25, self.reward_states, self.hazard_states, boundaries, None)
+       self.world_matrix = self.tile.states
        self.init_transit_mat, self.true_transition_mat = self.transition_probabilities()
-
-    # Design the world  
-    def get_world_matrix(self):
-        """
-        Generate the world matrix by combining the states of the four tiles
-        Returns:
-            shape_world: The world matrix
-        """
-
-        #tiles = [self.tileA, self.tileB, self.tileC, self.tileD]
-
-        # Apply rotation to each tile
-        for tile in self.tiles:
-            tile.states_rotate()
+  
         
-        # Shuffle the tiles to create different world configurations
-        shuffled_tiles = self.rng.choice(self.tiles, size=len(self.tiles), replace=False)
-
-        
-        # Combine the states of all tiles into a single matrix
-        top_row = np.hstack([shuffled_tiles[0].states, shuffled_tiles[1].states])
-        bottom_row = np.hstack([shuffled_tiles[2].states, shuffled_tiles[3].states])
-        
-        world_map = np.vstack([top_row, bottom_row]) 
-        
-        return world_map         
-    
-    
     # Move the agent
     def move_agent(self, action, state, agent_location, reward_placed):
         """
@@ -109,23 +69,16 @@ class VillageWorld():
 
         # Check if new location crosses a boundary => state 1
         current_state = self.get_state_from_location(agent_location)
-        # Learn in which tile it is so we can call self. 
-        current_tile, new_tile = self.get_tile_from_state(current_state), self.get_tile_from_state(new_state)
         
         # Check if there is a boundary between current state and next_state
-        if current_tile.is_boundary(current_state, new_state):
+        is_boundary = self.tile.is_boundary(current_state, new_state)
 
-            # If it is boundary do not update the location and remain in state
-         
+        # If it is boundary do not update the location and remain in state
+        if self.tile.is_boundary(current_state, new_state):
             return agent_location, self.world_matrix[agent_location]
-            
-        else: 
-            # Update location if move is allowed
-            agent_location = new_location
-           
-            
-            return agent_location, new_state
-        
+        else:
+            return new_location, new_state
+                
     # Get the new location given the action and current location
     def calculate_new_location(self, action, agent_location):
         """
@@ -163,35 +116,7 @@ class VillageWorld():
         # Convert a location in the grid to a state number
         return self.world_matrix[location]
 
-    
-    # Transform state into tile
-    def get_tile_from_state(self, state):
-        # Determine which tile a given state belongs to
-        if state < 25:
-            return self.tileA
-        elif state < 50:
-            return self.tileB
-        elif state < 75:
-            return self.tileC
-        else:
-            return self.tileD
         
-    def get_all_boundaries(self): 
-        """
-        Returns a list with tuples with the states between which there is a boundary
-
-        """        
-        tiles = [self.tileA, self.tileB, self.tileC, self.tileD]
-        
-        boundaries = []
-        # loop through the tiles and get the tile's boundaries
-        for tile in tiles:
-            boundaries.append(tile.boundaries) 
-        
-        flat_boundaries = [item for sublist in boundaries for item in sublist]
-        return flat_boundaries
-            
-
     def transition_probabilities(self):
         """
         Generate the initial and true transition probability matrices for the environment
@@ -217,8 +142,8 @@ class VillageWorld():
         
         # Populate the transition probability matrix
         for state in range(self.n_states):
-            #print(state)
-            x, y = np.where(self.world_matrix == state)
+            coords = np.where(self.world_matrix == state)
+            x, y = coords[0][0], coords[1][0]
 
             # Determine valid actions and their probabilities
             for action in range(self.n_actions):
@@ -236,10 +161,8 @@ class VillageWorld():
 
                     # Only for TRUE TM 
                     # Find in which tile it is so we can call self. 
-                    current_tile, new_tile = self.get_tile_from_state(state), self.get_tile_from_state(new_state)
 
-
-                    is_boundary = current_tile.is_boundary(state, new_state)
+                    is_boundary = self.tile.is_boundary(state, new_state)
 
                     # Check if there is a boundary between state and new_state 
                     if is_boundary:
@@ -266,19 +189,8 @@ class VillageWorld():
         Returns:
             agent_location: Initial location of the agent
         """
-        if exp == "exp3":
-            possible_initial_loc = [(3, 3), (4,3), (5, 3), (6,3), (6,4), (6,5), (6,6), (5,6), (4,6), (3,6), (3,5), (3,4)]
-        else:
-            possible_initial_loc = [(4,4), (5,4), (4,5), (5,5)]
-        # Return random initial location 
-        n_start_locations = len(possible_initial_loc)
-        in_index = self.rng.integers(0, n_start_locations)
-        agent_location = possible_initial_loc[in_index]
-        # Make sure that the start location is not a reward state
-        while self.world_matrix[agent_location] in self.reward_states:
-            in_index = self.rng.integers(0, n_start_locations)
-            agent_location = possible_initial_loc[in_index]
-    
+        initial_loc = (4,4)
+        agent_location = initial_loc    
         return agent_location
     
     def __repr__(self):

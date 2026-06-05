@@ -107,7 +107,7 @@ def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episode
                 next_agent_location, next_state = env.move_agent(action, state, agent_location, reward_placed)
 
                 # Observe reward for that action 
-                reward = find_reward(state, reward_placed)  
+                reward = find_reward(state, env,reward_placed)  
                 reward_per_step[episode, t] = reward 
                 reward_sums_epi[episode] += reward
 
@@ -168,7 +168,7 @@ def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episode
                 next_agent_location, next_state = env.move_agent(action, state, agent_location, reward_placed)
 
                 # Observe reward for that action 
-                reward = find_reward(state, reward_placed)  
+                reward = find_reward(state, env, reward_placed)  
                 reward_per_step[episode, t] = reward 
                 reward_sums_epi[episode] += reward
 

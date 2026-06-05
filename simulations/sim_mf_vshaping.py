@@ -19,7 +19,7 @@ n_states = 100
 n_simulations = 1 #1000
 max_steps = 40
 n_actions = 4
-expert_type = "mbased_pedagogical_expert" # "mbased_pedagogical_expert" | "mbased_expert" 
+expert_type = "mbased_expert" # "mbased_pedagogical_expert" | "mbased_expert" 
 teaching_objective = "action_gap"  # "q_mismatch" | "action_gap" | "cumulative_reward"
 
 learner_string = "mfree_vshaping"
@@ -43,12 +43,14 @@ for k in expert_data.keys():
 
 
 # Load worlds
-loaded = np.load('saved/worlds.npz')
-worlds = [loaded[f'arr_{i}'] for i in range(len(loaded.files))]
+#loaded = np.load('saved/worlds.npz')
+words_loaded = np.load(f'saved/dummy_worlds.npz')
+worlds = [words_loaded[f'arr_{i}'] for i in range(len(words_loaded.files))]
 
 # Load rewards
-rewards_load = np.load('saved/rewards_info.npz')
-rewards = [rewards_load[f'arr_{i}'] for i in range(len(rewards_load.files))]
+#rewards_load = np.load('saved/rewards_info.npz')
+rewards_loaded = np.load(f'saved/dummy_rewards_fixed.npz')
+rewards = [rewards_loaded[f'arr_{i}'] for i in range(len(rewards_loaded.files))]
 
 # Load modified rewards for test phase for exp2
 if exp == "exp2":
