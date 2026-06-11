@@ -18,12 +18,13 @@ exp = "baseline" # "baseline" "exp2" "exp3"
 n_states = 100
 n_simulations = 1 # 1000
 n_train_episodes = 100
-n_teach_episodes = 20
-n_episodes_total = n_train_episodes + n_teach_episodes 
+n_teach_episodes = 10  # teacher demonstrates, learner value-shapes
+n_test_episodes = 10   # teacher leaves, learner runs solo
+n_episodes_total = n_train_episodes + n_teach_episodes + n_test_episodes
 max_steps = 40
 n_actions = 4
 learner = "MF-VS"
-n_learner = 10
+n_learner = 1
 objective = "action_gap"  # "q_mismatch" | "action_gap" | "cumulative_reward"
 
 # Set random seed for reproducibility
@@ -88,7 +89,7 @@ print(f"Run exp {exp} with MB pedaogical expert for {n_simulations} simulation(s
 for sim in tqdm(range(n_simulations)):
     #env = VillageWorld(worlds_saved[sim], rng)
     env = DummyWorld(worlds_saved[sim], rng)
-    final_value, reward_sums_epi, state_mat, action_mat, steps_to_reward, tm_final, model_r, value_epi, tm_epi, reward_sums_steps, teacher_predictions  = agent_function(params, 
+    final_value, reward_sums_epi, state_mat, action_mat, steps_to_reward, tm_final, model_r, value_epi, tm_epi, reward_sums_steps, teacher_predictions, learner_logs  = agent_function(params,
                                                                                                                                                           env, 
                                                                                                                                                           worlds_saved[sim], 
                                                                                                                                                           rewards_shuffled[sim], 
@@ -101,6 +102,7 @@ for sim in tqdm(range(n_simulations)):
                                                                                                                                                           learner_function = learner_function,
                                                                                                                                                           learner_params = learner_params,
                                                                                                                                                           n_learner = n_learner,
+                                                                                                                                                          n_test_episodes = n_test_episodes,
                                                                                                                                                           objective = objective)
     
     rewards_result_epi_saved[sim] = reward_sums_epi
