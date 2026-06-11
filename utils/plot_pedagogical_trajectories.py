@@ -48,10 +48,14 @@ max_steps = 40
 n_learner = 1                      # a single learner learns with the teacher
 
 # Teacher conditions: objective name -> display label & color
+KAPPA_SHOW = 1.0   # weight of the communicative term in the *_show objectives
+
 CONDITIONS = {
-    "cumulative_reward": ("passive (greedy)", "tab:gray"),
-    "q_mismatch":        ("q_mismatch",       "tab:purple"),
-    "action_gap":        ("action_gap",       "tab:orange"),
+    "cumulative_reward": ("passive (greedy)",  "tab:gray"),
+    "q_mismatch":        ("q_mismatch",        "tab:purple"),
+    "action_gap":        ("action_gap",        "tab:orange"),
+    "q_mismatch_show":   ("q_mismatch + task", "tab:blue"),
+    "action_gap_show":   ("action_gap + task", "tab:red"),
 }
 
 N_LAST = 5                         # number of (last) teaching episodes to draw
@@ -101,6 +105,7 @@ def run_objective(objective):
         learner_params=learner_params,
         n_learner=n_learner,
         n_test_episodes=n_test_episodes,
+        kappa_show=KAPPA_SHOW,
         objective=objective,
     )
     (value, reward_sums_epi, state_mat, action_mat, steps_to_reward,

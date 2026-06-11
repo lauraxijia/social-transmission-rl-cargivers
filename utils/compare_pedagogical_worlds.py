@@ -41,10 +41,14 @@ n_episodes_total = n_train_episodes + n_social
 max_steps = 40
 n_learner = 1
 
+KAPPA_SHOW = 1.0                   # weight of the communicative term in *_show objectives
+
 CONDITIONS = {
-    "cumulative_reward": ("passive (greedy)", "tab:gray"),
-    "q_mismatch":        ("q_mismatch",       "tab:purple"),
-    "action_gap":        ("action_gap",       "tab:orange"),
+    "cumulative_reward": ("passive (greedy)",   "tab:gray"),
+    "q_mismatch":        ("q_mismatch",         "tab:purple"),
+    "action_gap":        ("action_gap",         "tab:orange"),
+    "q_mismatch_show":   ("q_mismatch + task",  "tab:blue"),
+    "action_gap_show":   ("action_gap + task",  "tab:red"),
 }
 
 
@@ -71,7 +75,8 @@ def run(objective, world_idx):
             teacher_params, env, world_matrix, rewards_info, max_steps,
             n_episodes_total, n_teach_episodes, rng, optimization=False, exp=exp,
             learner_function=MFValueShapingAgent, learner_params=learner_params,
-            n_learner=n_learner, n_test_episodes=n_test_episodes, objective=objective)
+            n_learner=n_learner, n_test_episodes=n_test_episodes,
+            kappa_show=KAPPA_SHOW, objective=objective)
     reward_sums_epi = out[1]
     learner_log = out[11][0]
     return reward_sums_epi, learner_log
