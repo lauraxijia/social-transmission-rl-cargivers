@@ -423,6 +423,10 @@ def teaching_objective(method, **ctx):
         return _obj_q_mismatch(**ctx)
     if method == "action_gap":
         return _obj_action_gap(**ctx)
+    if method == "q_mismatch_show":
+        return _obj_q_mismatch_show(**ctx)
+    if method == "action_gap_show":
+        return _obj_action_gap_show(**ctx)
     if method == "cumulative_reward":
         # Stub: full-trajectory rollout objective not yet implemented.
         teacher_Q = ctx["teacher_Q"]
@@ -460,5 +464,44 @@ def _obj_action_gap(predictions_at_t, learner_candidates, teacher_Q, **_):
             Q_l = sim['Q']
             gaps.append(float(Q_l[s, a_star] - Q_l[s, a_hat]))
         scores[a_T] = float(np.mean(gaps))
+    return int(max(scores, key=scores.get))
+
+
+def _obj_q_mismatch_show(predictions_at_t, learner_candidates, teacher_Q,
+                         expert_state, kappa_show=1.0, **_):
+    """Ho et al. (2018, eq. 3) style objective: the demonstration is rewarded by
+    the teacher's own task value PLUS a kappa-weighted communicative gain,
+    R_Show = R_task + kappa * (mismatch_before - mismatch_after).
+    mismatch_before is identical for every candidate a_T, so it drops out of the
+    argmax and the selection reduces to
+        argmax_a [ Q_E(s_t, a) - kappa * mismatch_after(a) ].
+    The communicative term is the q_mismatch score (lower = learner's Q closer
+    to the teacher's at the learner's current state)."""
+    scores = {}
+    for a_T, by_learner in predictions_at_t.items():
+        diffs = []
+        for l_id, sim in by_learner.items():
+            s = learner_candidates[l_id].current_state
+            diffs.append(np.linalg.norm(teacher_Q[s] - sim['Q'][s]))
+        scores[a_T] = float(teacher_Q[expert_state, a_T]) - kappa_show * float(np.mean(diffs))
+    return int(max(scores, key=scores.get))
+
+
+def _obj_action_gap_show(predictions_at_t, learner_candidates, teacher_Q,
+                         expert_state, kappa_show=1.0, **_):
+    """Ho et al. (2018, eq. 3) style objective combining the teacher's own task
+    value with the action_gap communicative term:
+        argmax_a [ Q_E(s_t, a) + kappa * gap_after(a) ].
+    (As above, the pre-demo gap is constant across a_T and drops out.)"""
+    scores = {}
+    for a_T, by_learner in predictions_at_t.items():
+        gaps = []
+        for l_id, sim in by_learner.items():
+            s = learner_candidates[l_id].current_state
+            a_star = int(np.argmax(teacher_Q[s]))
+            a_hat = int(sim['action'])
+            Q_l = sim['Q']
+            gaps.append(float(Q_l[s, a_star] - Q_l[s, a_hat]))
+        scores[a_T] = float(teacher_Q[expert_state, a_T]) + kappa_show * float(np.mean(gaps))
     return int(max(scores, key=scores.get))
 

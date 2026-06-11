@@ -5,7 +5,7 @@ from utils.helper_functions import softmax_policy, q_learning, dynaq_planner, fi
 
 """Policy of model-based pedagogical expert."""
 
-def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episodes_total, n_teach_episodes, rng, optimization = False, exp='baseline', learner_function = None, learner_params = None, n_learner = None, n_test_episodes = 0, *, objective):
+def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episodes_total, n_teach_episodes, rng, optimization = False, exp='baseline', learner_function = None, learner_params = None, n_learner = None, n_test_episodes = 0, kappa_show = 1.0, *, objective):
 
     # Assert that exp is either 'baseline' or 'exp2' or 'exp3'
     assert exp in ['baseline', 'exp2', 'exp3'], "exp must be 'baseline', 'exp2', or 'exp3'"
@@ -202,6 +202,7 @@ def mb_pedagogical_expert(params, env, world, rewards_info, max_steps, n_episode
                         expert_state=state,
                         horizon=max_steps - t,
                         n_actions=env.n_actions,
+                        kappa_show=kappa_show,
                     )
 
                     # Active learners observe the demo and take their own step
